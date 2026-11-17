@@ -47,10 +47,12 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time;
 
       allow update: if signedIn() && (
-        // a user may only change their own display name
+        // a user may only change their own display name and tutorial-completion time
         (request.auth.uid == uid
-          && changed().hasOnly(['displayName'])
-          && nonEmpty(request.resource.data.displayName, 100))
+          && changed().hasOnly(['displayName', 'tutorialCompletedAt'])
+          && nonEmpty(request.resource.data.displayName, 100)
+          && (!('tutorialCompletedAt' in changed())
+              || request.resource.data.tutorialCompletedAt == request.time))
         ||
         // admins may change OTHER users' roles (never their own)
         (isAdmin() && request.auth.uid != uid

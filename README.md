@@ -10,6 +10,7 @@ A web app for tracking budget indicators and the obligations recorded against th
 | **Budget Realignment** | Moves funds from a source indicator to a target indicator in one atomic `runTransaction()`, after checking the source has enough available balance. Each transfer writes an append-only realignment log. |
 | **Obligation Ledger** | Members record obligations against active indicators. Title and Object of Expenditure are filled in from the indicator. Entries are created and edited inside `runTransaction()`, so two users saving at once can never overspend an indicator. |
 | **Audit trail & soft delete** | Every indicator and ledger document stores `createdBy/At`, `updatedBy/At` and `deletedBy/At`. The app never calls `deleteDoc()`, and the rules reject hard deletes. Soft-deleting a ledger entry returns its amount to the indicator's available balance. |
+| **Guided tutorial** | A step-by-step tour of every feature, with content that depends on the user's role. It starts automatically on a user's first sign-in and can be replayed from the **Tutorial** button in the header. |
 | **Settings (RBAC)** | System Admins promote or demote users. An admin cannot change their own role, which guarantees at least one admin always remains. |
 
 ```
@@ -93,6 +94,7 @@ New accounts always start as `user`, and the rules reject any other role at sign
 | `role` | `'sys_admin' \| 'user'` | Always `'user'` at creation |
 | `createdAt` | timestamp | |
 | `roleUpdatedBy` / `roleUpdatedAt` | Actor / timestamp | Set when an admin changes the role |
+| `tutorialCompletedAt` | timestamp | Set when the user finishes or skips the tutorial. Only the user can set it, and only to the server time |
 
 ### `indicators/{activityCode}`
 The document ID **is** the Activity Code, which guarantees uniqueness without a query.

@@ -13,9 +13,12 @@ export class InsufficientBalanceError extends ValidationError {
 }
 
 const FIREBASE_MESSAGES = {
+  // Security rules rejected the commit; none of its writes were applied.
   'permission-denied':
-    'The server rejected this change. You may not have permission, or it would break a budget rule.',
-  aborted: 'Another user changed this record at the same time. Please try again.',
+    'The server rejected this change and nothing was saved. You may not have permission, or it would break a budget rule.',
+  // Every transaction attempt hit a conflict.
+  aborted: 'Could not save: other users kept changing the same records. Nothing was saved. Please try again.',
+  'failed-precondition': 'Could not save because the data changed while saving. Nothing was saved. Please try again.',
   unavailable: 'Cannot reach the server. Check your connection and try again.',
   'not-found': 'The record no longer exists.',
   'auth/invalid-credential': 'Incorrect email or password.',
@@ -26,6 +29,24 @@ const FIREBASE_MESSAGES = {
   'auth/weak-password': 'Password must be at least 6 characters.',
   'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
   'auth/network-request-failed': 'Network error. Check your connection.',
+};
+
+/**
+ * Which outcome of the ledger flowchart an error belongs to:
+ * 'validation' | 'insufficient' | 'rejected' | 'save'.
+ */
+export function errorKind(err) {
+  if (err instanceof InsufficientBalanceError) return 'insufficient';
+  if (err instanceof ValidationError) return 'validation';
+  if (err?.code === 'permission-denied') return 'rejected';
+  return 'save';
+}
+
+export const ERROR_TITLES = {
+  validation: 'Validation error',
+  insufficient: 'Insufficient balance',
+  rejected: 'Rejected by security rules',
+  save: 'Save error',
 };
 
 /** Turn any thrown value into a message that is safe to show the user. */

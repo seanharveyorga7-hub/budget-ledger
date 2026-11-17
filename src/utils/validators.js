@@ -51,6 +51,19 @@ export function validateLedgerInput(input) {
   return { activityCode, amount: input.amount, date: input.date, particulars };
 }
 
+/**
+ * Client check before any transaction starts: valid input (amount > 0, date) and the
+ * selected indicator is active according to the live data on screen. The transaction
+ * checks again against the server copy.
+ */
+export function validateLedgerSubmission(input, selectedIndicator) {
+  const data = validateLedgerInput(input);
+  if (!selectedIndicator || selectedIndicator.isDeleted || selectedIndicator.activityCode !== data.activityCode) {
+    throw new ValidationError(`Budget Indicator "${data.activityCode}" is not active.`);
+  }
+  return data;
+}
+
 export function validateRealignmentInput(input) {
   const sourceCode = normalizeActivityCode(input.sourceCode);
   const targetCode = normalizeActivityCode(input.targetCode);

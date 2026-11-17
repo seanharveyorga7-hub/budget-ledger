@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { TutorialProvider } from './contexts/TutorialContext';
 import Layout from './components/Layout';
 import { ProtectedRoute, RequireRole } from './components/RoleGuards';
 import Login from './pages/Login';
@@ -20,7 +21,9 @@ export default function App() {
             <Route
               element={
                 <ProtectedRoute>
-                  <Layout />
+                  <TutorialProvider>
+                    <Layout />
+                  </TutorialProvider>
                 </ProtectedRoute>
               }
             >

@@ -265,3 +265,61 @@ code { background: var(--surface-muted); padding: 1px 5px; border-radius: 4px; f
 .loading-inline { display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); padding: 32px; }
 .loading-full { min-height: 100vh; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-muted); }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- header bar ---------- */
+.main-col { display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  height: 56px; padding: 0 32px;
+  background: rgba(250, 249, 246, 0.92); backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--border);
+}
+.topbar-section { font-weight: 600; color: var(--text-muted); }
+.help-btn {
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  border: 1.5px solid var(--primary); background: var(--surface); color: var(--primary);
+  font: inherit; font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.help-btn:hover:not(:disabled) { background: var(--primary); color: #fff; }
+.help-btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+.help-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+@media (max-width: 860px) { .topbar { padding: 0 16px; height: 50px; } }
+
+/* ---------- guided tutorial ---------- */
+.tour-root { position: fixed; inset: 0; z-index: 1000; }
+.tour-blocker { position: fixed; inset: 0; }
+.tour-backdrop { position: fixed; inset: 0; background: rgba(28, 25, 23, 0.55); }
+.tour-spotlight {
+  position: fixed; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(28, 25, 23, 0.55), 0 0 0 3px var(--primary-light);
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+.tour-card {
+  position: fixed; width: min(380px, calc(100vw - 28px));
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: var(--shadow-lg); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px;
+  transition: top 0.25s ease, left 0.25s ease;
+}
+.tour-progress-row { display: flex; justify-content: space-between; align-items: center; }
+.tour-step-count { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.tour-bar { height: 4px; border-radius: 999px; background: var(--primary-soft); overflow: hidden; }
+.tour-bar > div { height: 100%; background: var(--primary); border-radius: inherit; transition: width 0.25s ease; }
+.tour-title { font-size: 17px; font-weight: 700; }
+.tour-body { display: flex; flex-direction: column; gap: 8px; line-height: 1.55; }
+.tour-body ul { margin: 0; padding-left: 20px; }
+.tour-body .loading-inline { padding: 12px; }
+.tour-formula {
+  font-weight: 600; text-align: center; padding: 8px; border-radius: var(--radius-sm);
+  background: var(--primary-tint); color: var(--primary-hover); font-variant-numeric: tabular-nums;
+}
+.tour-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight, .tour-card, .tour-bar > div { transition: none; }
+}
+.help-inline {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--primary); color: var(--primary); font-size: 12px; font-weight: 700;
+  vertical-align: -3px; margin: 0 2px;
+}

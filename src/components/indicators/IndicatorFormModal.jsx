@@ -3,9 +3,8 @@ import Modal from '../Modal';
 import MonthlyAllocationEditor from '../MonthlyAllocationEditor';
 import { Alert, Button } from '../ui';
 import { MoneyField, SelectField, TextField } from '../FormControls';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createIndicator, updateIndicator } from '../../services/indicatorService';
+import { useIndicatorActions } from '../../hooks/useIndicators';
 import { OBJECTS_OF_EXPENSES } from '../../utils/constants';
 import { centavosToInput, formatCentavos, parseToCentavos } from '../../utils/currency';
 import { autoDistribute, validateMonthlyAllocation } from '../../utils/monthly';
@@ -15,7 +14,7 @@ const blankMonths = () => Array(12).fill('');
 
 export default function IndicatorFormModal({ open, indicator, onClose }) {
   const isEdit = Boolean(indicator);
-  const { actor } = useAuth();
+  const actions = useIndicatorActions();
   const toast = useToast();
 
   const [code, setCode] = useState('');
@@ -60,10 +59,10 @@ export default function IndicatorFormModal({ open, indicator, onClose }) {
     };
     try {
       if (isEdit) {
-        await updateIndicator(indicator.activityCode, payload, actor);
+        await actions.update(indicator.activityCode, payload);
         toast.success(`Indicator ${indicator.activityCode} updated.`);
       } else {
-        await createIndicator(payload, actor);
+        await actions.create(payload);
         toast.success(`Indicator ${payload.activityCode.trim().toUpperCase()} created.`);
       }
       onClose();
