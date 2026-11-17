@@ -159,6 +159,9 @@ code { background: var(--surface-muted); padding: 1px 5px; border-radius: 4px; f
 .money-input { position: relative; }
 .money-prefix { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
 .money-input .input { padding-left: 26px; font-variant-numeric: tabular-nums; }
+.money-input-sm { display: block; }
+.money-input-sm .money-prefix { left: 8px; font-size: 13px; }
+.money-input .input-sm { padding-left: 22px; }
 .checkbox { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; white-space: nowrap; cursor: pointer; }
 .checkbox input { accent-color: var(--primary); width: 16px; height: 16px; }
 
