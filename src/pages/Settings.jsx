@@ -5,22 +5,21 @@ import { useUsers } from '../hooks/useUsers';
 import { Alert, Badge, Card, PageHeader, Spinner } from '../components/ui';
 import DataTable from '../components/DataTable';
 import { ConfirmDialog } from '../components/Modal';
-import { updateUserRole } from '../services/userService';
 import { ROLE_LABELS, ROLES } from '../utils/constants';
 import { formatTimestamp } from '../utils/dates';
 import { friendlyError } from '../utils/errors';
 
 export default function Settings() {
-  const { user, actor } = useAuth();
+  const { user } = useAuth();
   const toast = useToast();
-  const { users, loading, error } = useUsers();
+  const { users, loading, error, updateRole } = useUsers();
   const [pending, setPending] = useState(null); // { target, role }
   const [saving, setSaving] = useState(false);
 
   const confirmChange = async () => {
     setSaving(true);
     try {
-      await updateUserRole(pending.target.uid, pending.role, actor);
+      await updateRole(pending.target.uid, pending.role);
       toast.success(`${pending.target.displayName} is now a ${ROLE_LABELS[pending.role]}.`);
       setPending(null);
     } catch (err) {
@@ -37,7 +36,7 @@ export default function Settings() {
       <PageHeader title="Settings" subtitle="Manage user roles. Only System Admins can see this page." />
       <Alert>{error && friendlyError(error)}</Alert>
 
-      <Card title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} System Admin(s)</span>} flush>
+      <Card tourId="settings-users" title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} System Admin(s)</span>} flush>
         {loading ? (
           <Spinner />
         ) : (

@@ -2,15 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import Modal from '../Modal';
 import { Alert, Button } from '../ui';
 import { MoneyField, SelectField, TextAreaField } from '../FormControls';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { realignBudget } from '../../services/realignmentService';
+import { useIndicatorActions } from '../../hooks/useIndicators';
 import { availableBalance } from '../../utils/balance';
 import { formatCentavos, parseToCentavos } from '../../utils/currency';
 import { friendlyError } from '../../utils/errors';
 
 export default function RealignmentModal({ open, onClose, indicators, defaultSource }) {
-  const { actor } = useAuth();
+  const actions = useIndicatorActions();
   const toast = useToast();
   const [source, setSource] = useState('');
   const [target, setTarget] = useState('');
@@ -49,7 +48,7 @@ export default function RealignmentModal({ open, onClose, indicators, defaultSou
     setSaving(true);
     setError('');
     try {
-      await realignBudget({ sourceCode: source, targetCode: target, amount: amountCentavos, reason }, actor);
+      await actions.realign({ sourceCode: source, targetCode: target, amount: amountCentavos, reason });
       toast.success(`Realigned ${formatCentavos(amountCentavos)} from ${source} to ${target}.`);
       onClose();
     } catch (err) {

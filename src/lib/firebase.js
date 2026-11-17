@@ -1,7 +1,13 @@
 // Firebase initialization — the ONLY place the SDK is configured.
 import { initializeApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
-import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
+import {
+  connectFirestoreEmulator,
+  initializeFirestore,
+  memoryLocalCache,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 
 // Vite injects import.meta.env; the Node emulator test (scripts/) falls back to process.env.
 const env = import.meta.env || globalThis.process?.env || {};
@@ -19,7 +25,25 @@ export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseCon
 
 export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+
+// Long polling: antivirus web filters, VPNs, proxies and some browser extensions
+// buffer Firestore's default streaming connection, which makes listeners hang for
+// a long time before they fall back. Plain long-polling requests avoid that.
+// Set VITE_FIRESTORE_LONG_POLLING=false to use streaming instead.
+const forceLongPolling = env.VITE_FIRESTORE_LONG_POLLING !== 'false';
+
+// The browser keeps a local IndexedDB cache, so pages load instantly on later visits.
+// Balance checks still read live data, because transactions always go to the server.
+const hasIndexedDB = typeof indexedDB !== 'undefined';
+
+export const db = app
+  ? initializeFirestore(app, {
+      experimentalForceLongPolling: forceLongPolling,
+      localCache: hasIndexedDB
+        ? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        : memoryLocalCache(),
+    })
+  : null;
 
 // Optional: run against the local Firebase Emulator Suite (`firebase emulators:start`).
 if (app && env.VITE_USE_EMULATORS === 'true') {

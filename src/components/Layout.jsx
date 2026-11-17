@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTutorial } from '../contexts/TutorialContext';
 import { ROLE_LABELS, ROLES } from '../utils/constants';
 import { Badge, Button } from './ui';
 
@@ -12,6 +13,9 @@ const NAV = [
 
 export default function Layout() {
   const { profile, role, logOut } = useAuth();
+  const { start, active } = useTutorial();
+  const { pathname } = useLocation();
+  const section = NAV.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))?.label ?? '';
 
   return (
     <div className="app-shell">
@@ -23,14 +27,14 @@ export default function Layout() {
             <div className="brand-sub">Indicators &amp; Obligations</div>
           </div>
         </div>
-        <nav className="nav">
+        <nav className="nav" data-tour="nav">
           {NAV.filter((n) => !n.role || n.role === role).map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
               {n.label}
             </NavLink>
           ))}
         </nav>
-        <div className="sidebar-footer">
+        <div className="sidebar-footer" data-tour="sidebar-user">
           <div className="user-chip">
             <div className="avatar">{(profile.displayName || '?').charAt(0).toUpperCase()}</div>
             <div className="user-meta">
@@ -45,9 +49,26 @@ export default function Layout() {
           </Button>
         </div>
       </aside>
-      <main className="content">
-        <Outlet />
-      </main>
+
+      <div className="main-col">
+        <header className="topbar">
+          <div className="topbar-section">{section}</div>
+          <button
+            type="button"
+            className="help-btn"
+            onClick={start}
+            disabled={active}
+            data-tour="tour-button"
+            title="Replay the guided tour"
+            aria-label="Replay the guided tour"
+          >
+            ?
+          </button>
+        </header>
+        <main className="content">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 }

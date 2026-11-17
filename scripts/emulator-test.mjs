@@ -77,6 +77,12 @@ await expectFail('user cannot create profile as admin', () =>
   setDoc(doc(db, 'users', me.uid), { uid: me.uid, email: 'x', displayName: 'x', role: 'sys_admin', createdAt: serverTimestamp() }), 'permission-denied');
 await expectFail('user cannot change another role', () => userService.updateUserRole(users.bob.uid, 'sys_admin', me), 'permission-denied');
 await expectOk('user can rename self', () => updateDoc(doc(db, 'users', me.uid), { displayName: 'Alice U.' }));
+await expectOk('user can mark tutorial complete', () => userService.markTutorialComplete(me.uid));
+await expectFail('tutorial flag must be server time', () =>
+  updateDoc(doc(db, 'users', me.uid), { tutorialCompletedAt: new Date('2000-01-01') }), 'permission-denied');
+await expectFail('cannot sneak a role change in with the tutorial flag', () =>
+  updateDoc(doc(db, 'users', me.uid), { tutorialCompletedAt: serverTimestamp(), role: 'sys_admin' }), 'permission-denied');
+await expectFail("cannot mark another user's tutorial", () => userService.markTutorialComplete(users.bob.uid), 'permission-denied');
 
 me = await as('admin');
 await expectFail('admin cannot change own role (service)', () => userService.updateUserRole(me.uid, 'user', me), 'ValidationError');
@@ -100,7 +106,18 @@ await expectFail('user cannot create indicator', () => ind.createIndicator(base(
 await expectFail('user cannot realign', () => realignBudget({ sourceCode: 'A-001', targetCode: 'B-002', amount: 100, reason: 'x' }, me), 'permission-denied');
 
 console.log('\nObligation ledger');
-const e1 = await expectOk('alice obligates ₱600 on A-001', () => ledger.createLedgerEntry({ activityCode: 'A-001', amount: 60000, date: '2026-03-10', particulars: 'Supplies' }, me));
+const { validateLedgerSubmission } = await import('../src/utils/validators.js');
+const activeA = (await getDoc(ind.indicatorRef('A-001'))).data();
+await expectFail('client check: amount must be > 0', async () =>
+  validateLedgerSubmission({ activityCode: 'A-001', amount: 0, date: '2026-03-10', particulars: '' }, activeA), 'ValidationError');
+await expectFail('client check: selected indicator must be active', async () =>
+  validateLedgerSubmission({ activityCode: 'A-001', amount: 100, date: '2026-03-10', particulars: '' }, { ...activeA, isDeleted: true }), 'ValidationError');
+await expectFail('client check: missing indicator', async () =>
+  validateLedgerSubmission({ activityCode: 'A-001', amount: 100, date: '2026-03-10', particulars: '' }, undefined), 'ValidationError');
+
+const created = await expectOk('alice obligates ₱600 on A-001', () => ledger.createLedgerEntry({ activityCode: 'A-001', amount: 60000, date: '2026-03-10', particulars: 'Supplies' }, me));
+const e1 = created?.id;
+await expectEqual('result reports updated available balance (₱400)', created?.availableAfter, 40000);
 await expectEqual('A-001 totalObligations = 60000', await total('A-001'), 60000);
 await expectFail('over-budget entry blocked (service)', () =>
   ledger.createLedgerEntry({ activityCode: 'A-001', amount: 50000, date: '2026-03-11', particulars: '' }, me), 'InsufficientBalanceError');
