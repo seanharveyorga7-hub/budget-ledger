@@ -214,7 +214,12 @@ const STEPS = [
     id: 'help',
     target: 'tour-button',
     title: 'Need a refresher?',
-    body: <p>That's everything! Click <strong>Tutorial</strong> at the top of the page any time to replay this tour.</p>,
+    body: (
+      <p>
+        That's everything! Click the <span className="help-inline" aria-label="question mark">?</span> button at the top of the page any
+        time to replay this tour.
+      </p>
+    ),
   },
 ];
 

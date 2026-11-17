@@ -276,10 +276,15 @@ code { background: var(--surface-muted); padding: 1px 5px; border-radius: 4px; f
   border-bottom: 1px solid var(--border);
 }
 .topbar-section { font-weight: 600; color: var(--text-muted); }
-.help-icon {
-  width: 18px; height: 18px; border-radius: 50%; display: inline-grid; place-items: center;
-  background: var(--primary); color: #fff; font-size: 11px; font-weight: 700;
+.help-btn {
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0;
+  border: 1.5px solid var(--primary); background: var(--surface); color: var(--primary);
+  font: inherit; font-size: 16px; font-weight: 700; line-height: 1; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
+.help-btn:hover:not(:disabled) { background: var(--primary); color: #fff; }
+.help-btn:focus-visible { outline: 2px solid var(--primary-light); outline-offset: 2px; }
+.help-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 860px) { .topbar { padding: 0 16px; height: 50px; } }
 
 /* ---------- guided tutorial ---------- */
@@ -312,4 +317,9 @@ code { background: var(--surface-muted); padding: 1px 5px; border-radius: 4px; f
 .tour-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) {
   .tour-spotlight, .tour-card, .tour-bar > div { transition: none; }
+}
+.help-inline {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--primary); color: var(--primary); font-size: 12px; font-weight: 700;
+  vertical-align: -3px; margin: 0 2px;
 }

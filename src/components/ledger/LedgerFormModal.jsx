@@ -2,24 +2,23 @@ import { useEffect, useMemo, useState } from 'react';
 import Modal from '../Modal';
 import { Alert, Button } from '../ui';
 import { MoneyField, SelectField, TextAreaField, TextField } from '../FormControls';
-import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
-import { createLedgerEntry, updateLedgerEntry } from '../../services/ledgerService';
+import { useLedgerActions } from '../../hooks/useLedger';
 import { availableForEntry } from '../../utils/balance';
 import { centavosToInput, formatCentavos, parseToCentavos } from '../../utils/currency';
 import { todayISO } from '../../utils/dates';
-import { friendlyError } from '../../utils/errors';
+import { ERROR_TITLES, errorKind, friendlyError } from '../../utils/errors';
 
 export default function LedgerFormModal({ open, entry, indicators, onClose }) {
   const isEdit = Boolean(entry);
-  const { actor, isAdmin } = useAuth();
+  const ledger = useLedgerActions();
   const toast = useToast();
 
   const [code, setCode] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(todayISO());
   const [particulars, setParticulars] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -28,7 +27,7 @@ export default function LedgerFormModal({ open, entry, indicators, onClose }) {
     setAmount(entry ? centavosToInput(entry.amount) : '');
     setDate(entry?.date ?? todayISO());
     setParticulars(entry?.particulars ?? '');
-    setError('');
+    setError(null);
     setSaving(false);
   }, [open, entry]);
 
@@ -44,19 +43,18 @@ export default function LedgerFormModal({ open, entry, indicators, onClose }) {
     e.preventDefault();
     if (!canSave) return;
     setSaving(true);
-    setError('');
+    setError(null);
     const payload = { activityCode: code, amount: amountCentavos, date, particulars };
     try {
-      if (isEdit) {
-        await updateLedgerEntry(entry.id, payload, actor, { isAdmin });
-        toast.success('Ledger entry updated.');
-      } else {
-        await createLedgerEntry(payload, actor);
-        toast.success(`Obligation of ${formatCentavos(amountCentavos)} recorded.`);
-      }
+      const result = isEdit ? await ledger.update(entry, payload, indicator) : await ledger.create(payload, indicator);
+      // Success: show the saved entry and the updated balance.
+      toast.success(
+        `${isEdit ? 'Entry updated' : `Obligation of ${formatCentavos(amountCentavos)} saved`}. ` +
+          `${result.activityCode} available balance is now ${formatCentavos(result.availableAfter)}.`,
+      );
       onClose();
     } catch (err) {
-      setError(friendlyError(err));
+      setError(err);
       setSaving(false);
     }
   };
@@ -79,7 +77,11 @@ export default function LedgerFormModal({ open, entry, indicators, onClose }) {
       }
     >
       <form id="ledger-form" className="stack" onSubmit={handleSubmit} noValidate>
-        <Alert>{error}</Alert>
+        {error && (
+          <Alert>
+            <strong>{ERROR_TITLES[errorKind(error)]}:</strong> {friendlyError(error)}
+          </Alert>
+        )}
         <SelectField
           label="Budget Indicator"
           value={code}

@@ -2,19 +2,19 @@ import { useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useIndicators } from '../hooks/useIndicators';
-import { useLedger } from '../hooks/useLedger';
+import { useLedger, useLedgerActions } from '../hooks/useLedger';
 import { Alert, Badge, Button, Card, PageHeader, Spinner } from '../components/ui';
 import DataTable, { RowActions } from '../components/DataTable';
 import { ConfirmDialog } from '../components/Modal';
 import LedgerFormModal from '../components/ledger/LedgerFormModal';
 import LedgerDetailModal from '../components/ledger/LedgerDetailModal';
-import { softDeleteLedgerEntry } from '../services/ledgerService';
 import { formatAmount, formatCentavos } from '../utils/currency';
 import { formatISODate } from '../utils/dates';
 import { friendlyError } from '../utils/errors';
 
 export default function Ledger() {
-  const { isAdmin, actor, user } = useAuth();
+  const { isAdmin, user } = useAuth();
+  const ledgerActions = useLedgerActions();
   const toast = useToast();
   const { indicators, loading: li, error: ei } = useIndicators();
   const { all, entries, loading: ll, error: el } = useLedger();
@@ -47,8 +47,8 @@ export default function Ledger() {
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      await softDeleteLedgerEntry(toDelete.id, actor);
-      toast.success(`Entry deleted. ${formatCentavos(toDelete.amount)} returned to ${toDelete.activityCode}.`);
+      const { availableAfter } = await ledgerActions.softDelete(toDelete);
+      toast.success(`Entry deleted. ${formatCentavos(toDelete.amount)} returned to ${toDelete.activityCode} (available balance now ${formatCentavos(availableAfter)}).`);
       setToDelete(null);
     } catch (err) {
       toast.error(friendlyError(err));

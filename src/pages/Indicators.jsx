@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
-import { useIndicators } from '../hooks/useIndicators';
+import { useIndicatorActions, useIndicators } from '../hooks/useIndicators';
 import { useLedger } from '../hooks/useLedger';
 import { useRealignments } from '../hooks/useRealignments';
 import { Alert, Badge, Button, Card, PageHeader, Spinner, Tabs } from '../components/ui';
@@ -11,7 +11,6 @@ import { IfRole } from '../components/RoleGuards';
 import IndicatorFormModal from '../components/indicators/IndicatorFormModal';
 import IndicatorDetailModal from '../components/indicators/IndicatorDetailModal';
 import RealignmentModal from '../components/indicators/RealignmentModal';
-import { softDeleteIndicator } from '../services/indicatorService';
 import { adjustedBudget, availableBalance, utilizationRate, utilizationTone } from '../utils/balance';
 import { formatAmount, formatCentavos, formatPercent } from '../utils/currency';
 import { formatTimestamp } from '../utils/dates';
@@ -19,7 +18,8 @@ import { OBJECTS_OF_EXPENSES, ROLES } from '../utils/constants';
 import { friendlyError } from '../utils/errors';
 
 export default function Indicators() {
-  const { isAdmin, actor } = useAuth();
+  const { isAdmin } = useAuth();
+  const indicatorActions = useIndicatorActions();
   const toast = useToast();
   const { all, indicators, loading, error } = useIndicators();
   const { entries } = useLedger();
@@ -61,7 +61,7 @@ export default function Indicators() {
   const confirmDelete = async () => {
     setDeleting(true);
     try {
-      await softDeleteIndicator(toDelete.activityCode, actor);
+      await indicatorActions.softDelete(toDelete.activityCode);
       toast.success(`Indicator ${toDelete.activityCode} deleted.`);
       setToDelete(null);
     } catch (err) {

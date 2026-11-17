@@ -1,10 +1,12 @@
-import { subscribeUsers } from '../services/userService';
+import { useMemo } from 'react';
+import { subscribeUsers, updateUserRole } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from './useSubscription';
 
 /** Lists all users. Only subscribes for admins (rules would deny anyone else). */
 export function useUsers() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, actor } = useAuth();
   const { data, loading, error } = useSubscription(subscribeUsers, [], { enabled: isAdmin });
-  return { users: data, loading, error };
+  const updateRole = useMemo(() => (uid, role) => updateUserRole(uid, role, actor), [actor]);
+  return { users: data, loading, error, updateRole };
 }

@@ -53,10 +53,17 @@ export default function Layout() {
       <div className="main-col">
         <header className="topbar">
           <div className="topbar-section">{section}</div>
-          <Button variant="ghost" size="sm" onClick={start} disabled={active} data-tour="tour-button" title="Replay the guided tour">
-            <span className="help-icon" aria-hidden="true">?</span>
-            Tutorial
-          </Button>
+          <button
+            type="button"
+            className="help-btn"
+            onClick={start}
+            disabled={active}
+            data-tour="tour-button"
+            title="Replay the guided tour"
+            aria-label="Replay the guided tour"
+          >
+            ?
+          </button>
         </header>
         <main className="content">
           <Outlet />
