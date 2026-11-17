@@ -13,7 +13,7 @@ Object.assign(process.env, {
 });
 
 const { auth, db } = await import('../src/lib/firebase.js');
-const { doc, getDoc, updateDoc, deleteDoc, writeBatch, collection, serverTimestamp, setDoc } = await import('firebase/firestore');
+const { doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, writeBatch, collection, serverTimestamp, setDoc } = await import('firebase/firestore');
 const { signInWithEmailAndPassword, signOut } = await import('firebase/auth');
 const authService = await import('../src/services/authService.js');
 const userService = await import('../src/services/userService.js');
@@ -148,8 +148,11 @@ await expectFail('alice cannot soft-delete (admin only)', () => ledger.softDelet
 await expectFail('hard delete blocked', () => deleteDoc(doc(db, 'ledger', e1)), 'permission-denied');
 
 me = await as('bob');
+await expectFail("bob cannot read alice's entry", () => getDoc(doc(db, 'ledger', e1)), 'permission-denied');
+await expectFail('user cannot list the entire ledger', () => getDocs(collection(db, 'ledger')), 'permission-denied');
+await expectOk('user can query their own ledger', () => getDocs(query(collection(db, 'ledger'), where('createdBy.uid', '==', me.uid))));
 await expectFail("bob cannot edit alice's entry (service)", () =>
-  ledger.updateLedgerEntry(e1, { activityCode: 'B-002', amount: 100, date: '2026-03-10', particulars: '' }, me), 'ValidationError');
+  ledger.updateLedgerEntry(e1, { activityCode: 'B-002', amount: 100, date: '2026-03-10', particulars: '' }, me), 'permission-denied');
 await expectFail("bob cannot edit alice's entry (rules)", () =>
   ledger.updateLedgerEntry(e1, { activityCode: 'B-002', amount: 100, date: '2026-03-10', particulars: '' }, me, { isAdmin: true }), 'permission-denied');
 

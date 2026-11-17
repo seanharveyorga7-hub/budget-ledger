@@ -205,7 +205,7 @@ service cloud.firestore {
     function obligationsBefore(code) { return get(indicatorPath(code)).data.totalObligations; }
 
     match /ledger/{entryId} {
-      allow read: if isMember();
+      allow read: if isMember() && (isAdmin() || resource.data.createdBy.uid == request.auth.uid);
 
       allow create: if isMember()
         && validLedger(request.resource.data)

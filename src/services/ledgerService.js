@@ -2,7 +2,7 @@
 // indicator's running `totalObligations`, so concurrent submissions can never
 // push an indicator past its available balance. firestore.rules check the
 // same rule on the server.
-import { collection, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase';
 import { ValidationError } from '../utils/errors';
 import { assertSufficientBalance, availableBalance } from '../utils/balance';
@@ -12,9 +12,14 @@ import { indicatorRef } from './indicatorService';
 const ledgerRef = (id) => doc(db, COLLECTIONS.ledger, id);
 const snapOpts = { serverTimestamps: 'estimate' };
 
-export function subscribeLedger(onData, onError) {
-  const q = query(collection(db, COLLECTIONS.ledger), orderBy('date', 'desc'));
-  return onSnapshot(q, (snap) => onData(snap.docs.map((d) => ({ id: d.id, ...d.data(snapOpts) }))), onError);
+export function subscribeLedger(onData, onError, ownerUid = null) {
+  const entries = collection(db, COLLECTIONS.ledger);
+  const q = ownerUid
+    ? query(entries, where('createdBy.uid', '==', ownerUid))
+    : query(entries, orderBy('date', 'desc'));
+  return onSnapshot(q, (snap) => onData(snap.docs
+    .map((d) => ({ id: d.id, ...d.data(snapOpts) }))
+    .sort((a, b) => b.date.localeCompare(a.date))), onError);
 }
 
 function requireActiveIndicator(snap, code) {

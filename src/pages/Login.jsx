@@ -16,7 +16,7 @@ export default function Login() {
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (user && profile) return <Navigate to={location.state?.from?.pathname || '/'} replace />;
+  if (user && !loading && !authError && profile) return <Navigate to={location.state?.from?.pathname || '/'} replace />;
 
   // Signed in to Firebase Auth, but the Firestore profile step is still running or failed.
   if (user && (loading || authError || !profile)) {

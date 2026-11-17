@@ -1,21 +1,23 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { friendlyError } from '../utils/errors';
+import { ROLES } from '../utils/constants';
 import { Alert, Button, Spinner } from './ui';
 
 /** Requires a signed-in user with a loaded profile. */
 export function ProtectedRoute({ children }) {
-  const { user, profile, loading, error, logOut } = useAuth();
+  const { user, profile, role, loading, error, logOut } = useAuth();
   const location = useLocation();
 
   if (loading) return <Spinner full label="Loading your account…" />;
   if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
-  if (error || !profile) {
+  if (error || !profile || !Object.values(ROLES).includes(role)) {
     return (
       <div className="center-screen">
         <div className="card narrow">
           <div className="card-body stack">
-            <Alert>{error ? friendlyError(error) : 'Your user profile could not be loaded.'}</Alert>
+            <h1>Access denied</h1>
+            <Alert>{error ? friendlyError(error) : 'Your account has no recognized role. Contact a System Admin to restore access.'}</Alert>
             <Button variant="ghost" onClick={logOut}>
               Sign out
             </Button>

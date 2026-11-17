@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
   useEffect(
     () =>
       authService.onAuthChange((firebaseUser) => {
+        setProfile(null);
         setUser(firebaseUser);
         setError(null);
         if (!firebaseUser) {
@@ -27,7 +28,7 @@ export function AuthProvider({ children }) {
     [],
   );
 
-  // Create the profile if needed, then watch it so role changes apply live.
+  // Only registration creates a profile; sign-in reads the assigned role.
   useEffect(() => {
     if (!user) return undefined;
     let cancelled = false;
@@ -36,16 +37,19 @@ export function AuthProvider({ children }) {
     const pending = pendingName.current;
     const preferredName = pending && pending.email === user.email?.toLowerCase() ? pending.displayName : null;
 
-    ensureUserProfile(user, preferredName)
+    (preferredName ? ensureUserProfile(user, preferredName) : Promise.resolve())
       .then(() => {
         if (cancelled) return;
         unsubscribe = subscribeUserProfile(
           user.uid,
           (p) => {
+            if (cancelled) return;
             setProfile(p);
             setLoading(false);
           },
           (err) => {
+            if (cancelled) return;
+            setProfile(null);
             console.error('[auth] profile listener failed:', err);
             setError(err);
             setLoading(false);
@@ -69,7 +73,11 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (email, password, displayName) => {
     // Auth state may fire before updateProfile() finishes, so remember the name by email.
     pendingName.current = { email: email.trim().toLowerCase(), displayName };
-    return authService.register(email, password, displayName);
+    try {
+      return await authService.register(email, password, displayName);
+    } finally {
+      pendingName.current = null;
+    }
   }, []);
 
   const value = useMemo(() => {

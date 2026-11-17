@@ -56,6 +56,16 @@ Available Balance = (Annual Budget + Realignment) − Total Active Obligations
    ```
 8. *(Optional)* **Host it:** run `npm run build && firebase deploy --only hosting`.
 
+### Login and page access
+
+Firebase Authentication verifies credentials and shows a login error if sign-in fails. After sign-in, the app reads `users/{uid}` from Firestore and checks the assigned role:
+
+- `sys_admin`: Dashboard, Indicators, all Ledger entries, and Settings.
+- `user`: Dashboard, read-only Indicators, and their own Ledger entries. Dashboard ledger lists and monthly obligations also use only their entries; indicator budget totals remain shared.
+- Missing profile, missing role, or unknown role: page access is denied. Contact a System Admin.
+
+Profiles are created with the `user` role during account registration only. Signing in does not recreate a missing profile. Role changes apply live. React route and button guards control the interface; Firestore rules independently enforce roles and ledger ownership. Deploy rule changes with `npm run deploy:rules`.
+
 ### Setting the first System Admin
 
 New accounts always start as `user`, and the rules reject any other role at sign-up. To create the very first admin:
