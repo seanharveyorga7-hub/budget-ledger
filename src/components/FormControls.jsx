@@ -1,5 +1,11 @@
-import { useId } from 'react';
-import { centavosToInput, parseToCentavos } from '../utils/currency';
+import { useId, useLayoutEffect, useRef } from 'react';
+import {
+  caretAfterMoneyChars,
+  centavosToInput,
+  countMoneyChars,
+  formatMoneyTyping,
+  parseToCentavos,
+} from '../utils/currency';
 
 function Field({ label, hint, error, id, children, className = '' }) {
   return (
@@ -49,28 +55,60 @@ export function SelectField({ label, hint, error, options, placeholder, classNam
   );
 }
 
-/** Peso input. Value is the raw string the user typed; it is tidied to 2 decimals on blur. */
+/**
+ * Bare money input. Adds thousands commas as the user types ("1234567" -> "1,234,567")
+ * and keeps the cursor in place. On blur the value is padded to 2 decimals ("1,500" -> "1,500.00").
+ * `value` / `onChange` work with the formatted string; use parseToCentavos() to read it.
+ */
+export function MoneyInput({ value, onChange, onBlur, className = 'input', ...props }) {
+  const ref = useRef(null);
+  const pendingCaret = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (pendingCaret.current !== null && el && document.activeElement === el) {
+      el.setSelectionRange(pendingCaret.current, pendingCaret.current);
+    }
+    pendingCaret.current = null;
+  });
+
+  const handleChange = (e) => {
+    const raw = e.target.value;
+    const before = countMoneyChars(raw.slice(0, e.target.selectionStart ?? raw.length));
+    const formatted = formatMoneyTyping(raw);
+    pendingCaret.current = caretAfterMoneyChars(formatted, before);
+    onChange(formatted);
+  };
+
+  const handleBlur = (e) => {
+    const c = parseToCentavos(value);
+    if (value !== '' && c !== null) onChange(centavosToInput(c));
+    onBlur?.(e);
+  };
+
+  return (
+    <input
+      ref={ref}
+      className={className}
+      inputMode="decimal"
+      autoComplete="off"
+      placeholder="0.00"
+      value={value}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      {...props}
+    />
+  );
+}
+
+/** Labelled peso field built on MoneyInput. */
 export function MoneyField({ label, hint, error, value, onChange, className, ...props }) {
   const id = useId();
-  const handleBlur = () => {
-    const c = parseToCentavos(value);
-    if (c !== null) onChange(centavosToInput(c));
-  };
   return (
     <Field label={label} hint={hint} error={error} id={id} className={className}>
       <div className="money-input">
         <span className="money-prefix">₱</span>
-        <input
-          id={id}
-          className="input"
-          inputMode="decimal"
-          autoComplete="off"
-          placeholder="0.00"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={handleBlur}
-          {...props}
-        />
+        <MoneyInput id={id} value={value} onChange={onChange} {...props} />
       </div>
     </Field>
   );

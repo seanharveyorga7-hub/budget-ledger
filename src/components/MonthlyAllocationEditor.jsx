@@ -1,6 +1,7 @@
 import { MONTHS } from '../utils/monthly';
 import { formatCentavos, parseToCentavos } from '../utils/currency';
 import { Button } from './ui';
+import { MoneyInput } from './FormControls';
 
 /**
  * 12 month inputs (strings) with a live total vs. the annual budget.
@@ -31,13 +32,12 @@ export default function MonthlyAllocationEditor({ values, onChange, annualCentav
         {MONTHS.map((m, i) => (
           <label key={m} className={`month-cell ${parsed[i] === null ? 'field-invalid' : ''}`}>
             <span className="month-name">{m}</span>
-            <input
+            <MoneyInput
               className="input input-sm"
-              inputMode="decimal"
               value={values[i]}
               disabled={disabled}
-              onChange={(e) => setMonth(i, e.target.value)}
-              placeholder="0.00"
+              onChange={(v) => setMonth(i, v)}
+              aria-label={`${m} allocation`}
             />
           </label>
         ))}
