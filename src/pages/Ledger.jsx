@@ -1,0 +1,171 @@
+import { useMemo, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
+import { useIndicators } from '../hooks/useIndicators';
+import { useLedger } from '../hooks/useLedger';
+import { Alert, Badge, Button, Card, PageHeader, Spinner } from '../components/ui';
+import DataTable, { RowActions } from '../components/DataTable';
+import { ConfirmDialog } from '../components/Modal';
+import LedgerFormModal from '../components/ledger/LedgerFormModal';
+import LedgerDetailModal from '../components/ledger/LedgerDetailModal';
+import { softDeleteLedgerEntry } from '../services/ledgerService';
+import { formatAmount, formatCentavos } from '../utils/currency';
+import { formatISODate } from '../utils/dates';
+import { friendlyError } from '../utils/errors';
+
+export default function Ledger() {
+  const { isAdmin, actor, user } = useAuth();
+  const toast = useToast();
+  const { indicators, loading: li, error: ei } = useIndicators();
+  const { all, entries, loading: ll, error: el } = useLedger();
+
+  const [search, setSearch] = useState('');
+  const [codeFilter, setCodeFilter] = useState('');
+  const [mineOnly, setMineOnly] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [formState, setFormState] = useState({ open: false, entry: null });
+  const [detail, setDetail] = useState(null);
+  const [toDelete, setToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const rows = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (showDeleted && isAdmin ? all : entries).filter(
+      (e) =>
+        (!codeFilter || e.activityCode === codeFilter) &&
+        (!mineOnly || e.createdBy?.uid === user.uid) &&
+        (!term ||
+          e.activityCode.toLowerCase().includes(term) ||
+          e.activityTitle.toLowerCase().includes(term) ||
+          (e.particulars || '').toLowerCase().includes(term)),
+    );
+  }, [all, entries, search, codeFilter, mineOnly, showDeleted, isAdmin, user.uid]);
+
+  const total = rows.filter((e) => !e.isDeleted).reduce((s, e) => s + e.amount, 0);
+  const canEdit = (e) => !e.isDeleted && (isAdmin || e.createdBy?.uid === user.uid);
+
+  const confirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await softDeleteLedgerEntry(toDelete.id, actor);
+      toast.success(`Entry deleted. ${formatCentavos(toDelete.amount)} returned to ${toDelete.activityCode}.`);
+      setToDelete(null);
+    } catch (err) {
+      toast.error(friendlyError(err));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div className="page">
+      <PageHeader
+        title="Obligation Ledger"
+        subtitle="Every obligation is checked against the indicator's available balance before it is saved."
+        actions={
+          <Button onClick={() => setFormState({ open: true, entry: null })} disabled={indicators.length === 0}>
+            + New Obligation
+          </Button>
+        }
+      />
+      <Alert>{(ei || el) && friendlyError(ei || el)}</Alert>
+      {!li && indicators.length === 0 && <Alert tone="info">No active Budget Indicators yet. A System Admin must create one first.</Alert>}
+
+      <Card flush>
+        <div className="toolbar">
+          <input className="input" placeholder="Search code, title or particulars…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <select className="input" value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)} aria-label="Indicator">
+            <option value="">All indicators</option>
+            {indicators.map((i) => (
+              <option key={i.activityCode} value={i.activityCode}>
+                {i.activityCode}
+              </option>
+            ))}
+          </select>
+          <label className="checkbox">
+            <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> My entries
+          </label>
+          {isAdmin && (
+            <label className="checkbox">
+              <input type="checkbox" checked={showDeleted} onChange={(e) => setShowDeleted(e.target.checked)} /> Show deleted
+            </label>
+          )}
+        </div>
+
+        {ll ? (
+          <Spinner />
+        ) : (
+          <DataTable
+            rows={rows}
+            onRowClick={setDetail}
+            rowClassName={(e) => (e.isDeleted ? 'row-deleted' : '')}
+            emptyMessage="No obligations found."
+            columns={[
+              { key: 'date', header: 'Date', render: (e) => formatISODate(e.date) },
+              { key: 'activityCode', header: 'Code', render: (e) => <strong>{e.activityCode}</strong> },
+              {
+                key: 'activityTitle',
+                header: 'Activity Title',
+                className: 'cell-wrap',
+                render: (e) => (
+                  <>
+                    {e.activityTitle} {e.isDeleted && <Badge tone="danger">Deleted</Badge>}
+                  </>
+                ),
+              },
+              { key: 'objectOfExpenditure', header: 'Object', render: (e) => <Badge tone="accent">{e.objectOfExpenditure}</Badge> },
+              { key: 'particulars', header: 'Particulars', className: 'cell-truncate' },
+              { key: 'amount', header: 'Amount', align: 'right', render: (e) => <strong>{formatAmount(e.amount)}</strong> },
+              { key: 'by', header: 'Encoded by', render: (e) => e.createdBy?.name },
+              {
+                key: 'actions',
+                header: '',
+                align: 'right',
+                render: (e) => (
+                  <RowActions>
+                    {canEdit(e) && (
+                      <Button size="sm" variant="ghost" onClick={() => setFormState({ open: true, entry: e })}>
+                        Edit
+                      </Button>
+                    )}
+                    {isAdmin && !e.isDeleted && (
+                      <Button size="sm" variant="ghost-danger" onClick={() => setToDelete(e)}>
+                        Delete
+                      </Button>
+                    )}
+                  </RowActions>
+                ),
+              },
+            ]}
+            footer={
+              <tr>
+                <td colSpan={5}>Total ({rows.filter((e) => !e.isDeleted).length} active entries)</td>
+                <td className="ta-right">{formatAmount(total)}</td>
+                <td colSpan={2} />
+              </tr>
+            }
+          />
+        )}
+      </Card>
+
+      <LedgerFormModal open={formState.open} entry={formState.entry} indicators={indicators} onClose={() => setFormState({ open: false, entry: null })} />
+      <LedgerDetailModal entry={detail} onClose={() => setDetail(null)} />
+      <ConfirmDialog
+        open={Boolean(toDelete)}
+        title="Delete obligation?"
+        message={
+          toDelete && (
+            <>
+              The {formatCentavos(toDelete.amount)} obligation under <strong>{toDelete.activityCode}</strong> will be marked as deleted and the
+              amount returned to the indicator's available balance. The record is kept for audit.
+            </>
+          )
+        }
+        confirmLabel="Delete"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setToDelete(null)}
+      />
+    </div>
+  );
+}

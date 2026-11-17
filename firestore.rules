@@ -1,0 +1,267 @@
+rules_version = '2';
+
+// Budget Indicator & Obligation Ledger — Firestore Security Rules
+//
+// Invariants enforced server-side (no Cloud Functions needed):
+//   * All money fields are INTEGER CENTAVOS (exact equality checks, no float drift).
+//   * Hard deletes are blocked everywhere (`allow delete: if false`).
+//   * Only sys_admin can change roles, and never their own.
+//   * An indicator can never be over-obligated:
+//       annualBudget + realignment >= totalObligations
+//   * Every change to indicators.totalObligations must be paired, in the same
+//     transaction, with the ledger write that justifies it (and vice versa).
+//   * Every change to indicators.realignment must be paired with a realignment log.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+    function profilePath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
+    function hasProfile() { return signedIn() && exists(profilePath()); }
+    function myRole() { return get(profilePath()).data.role; }
+    function isAdmin() { return hasProfile() && myRole() == 'sys_admin'; }
+    function isMember() { return hasProfile() && myRole() in ['sys_admin', 'user']; }
+
+    function indicatorPath(code) { return /databases/$(database)/documents/indicators/$(code); }
+    function ledgerPath(id) { return /databases/$(database)/documents/ledger/$(id); }
+    function realignPath(id) { return /databases/$(database)/documents/realignments/$(id); }
+
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    function isMoney(v) { return v is int && v >= 0; }
+    function isActor(a) {
+      return a is map && a.keys().hasOnly(['uid', 'name'])
+        && a.uid == request.auth.uid && a.name is string;
+    }
+    function nonEmpty(s, max) { return s is string && s.size() > 0 && s.size() <= max; }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Self-registration always starts as a normal user.
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'role', 'createdAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'user'
+        && request.resource.data.createdAt == request.time;
+
+      allow update: if signedIn() && (
+        // a user may only change their own display name
+        (request.auth.uid == uid
+          && changed().hasOnly(['displayName'])
+          && nonEmpty(request.resource.data.displayName, 100))
+        ||
+        // admins may change OTHER users' roles (never their own)
+        (isAdmin() && request.auth.uid != uid
+          && changed().hasOnly(['role', 'roleUpdatedBy', 'roleUpdatedAt'])
+          && request.resource.data.role in ['sys_admin', 'user']
+          && isActor(request.resource.data.roleUpdatedBy)
+          && request.resource.data.roleUpdatedAt == request.time)
+      );
+
+      allow delete: if false;
+    }
+
+    // ---------- indicators (doc id == activityCode, which guarantees uniqueness) ----------
+    function validMonths(m, total) {
+      return m is list && m.size() == 12
+        && isMoney(m[0]) && isMoney(m[1]) && isMoney(m[2]) && isMoney(m[3])
+        && isMoney(m[4]) && isMoney(m[5]) && isMoney(m[6]) && isMoney(m[7])
+        && isMoney(m[8]) && isMoney(m[9]) && isMoney(m[10]) && isMoney(m[11])
+        && m[0] + m[1] + m[2] + m[3] + m[4] + m[5] + m[6] + m[7] + m[8] + m[9] + m[10] + m[11] == total;
+    }
+
+    function validIndicator(d) {
+      return d.keys().hasOnly([
+          'activityCode', 'activityTitle', 'objectOfExpenses', 'annualBudget', 'realignment',
+          'monthlyAllocation', 'totalObligations', 'isDeleted',
+          'createdBy', 'createdAt', 'updatedBy', 'updatedAt', 'deletedBy', 'deletedAt',
+          'lastLedgerEntryId', 'lastRealignmentId'])
+        && nonEmpty(d.activityCode, 50)
+        && nonEmpty(d.activityTitle, 300)
+        && d.objectOfExpenses in ['PS', 'MOOE', 'CO', 'FE']
+        && isMoney(d.annualBudget)
+        && d.realignment is int
+        && isMoney(d.totalObligations)
+        && validMonths(d.monthlyAllocation, d.annualBudget)
+        && d.annualBudget + d.realignment >= d.totalObligations   // never over-obligated
+        && d.isDeleted is bool;
+    }
+
+    match /indicators/{code} {
+      allow read: if isMember();
+
+      allow create: if isAdmin()
+        && validIndicator(request.resource.data)
+        && request.resource.data.activityCode == code
+        && request.resource.data.realignment == 0
+        && request.resource.data.totalObligations == 0
+        && request.resource.data.isDeleted == false
+        && isActor(request.resource.data.createdBy)
+        && request.resource.data.createdAt == request.time;
+
+      function immutableKept() {
+        return request.resource.data.activityCode == resource.data.activityCode
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
+
+      // Admin edits title / object / budget / monthly split.
+      function adminEdit() {
+        return isAdmin()
+          && changed().hasOnly(['activityTitle', 'objectOfExpenses', 'annualBudget',
+                                'monthlyAllocation', 'updatedBy', 'updatedAt'])
+          && isActor(request.resource.data.updatedBy)
+          && request.resource.data.updatedAt == request.time
+          // cannot reclassify an indicator that already has obligations
+          && (resource.data.totalObligations == 0
+              || request.resource.data.objectOfExpenses == resource.data.objectOfExpenses);
+      }
+
+      // Admin realignment: must be paired with a realignment log written in this transaction.
+      function adminRealign() {
+        return isAdmin()
+          && changed().hasOnly(['realignment', 'lastRealignmentId', 'updatedBy', 'updatedAt'])
+          && isActor(request.resource.data.updatedBy)
+          && request.resource.data.updatedAt == request.time
+          && getAfter(realignPath(request.resource.data.lastRealignmentId)).data.createdAt == request.time;
+      }
+
+      // Admin soft delete: only when nothing is obligated against it.
+      function adminSoftDelete() {
+        return isAdmin()
+          && changed().hasOnly(['isDeleted', 'deletedBy', 'deletedAt'])
+          && request.resource.data.isDeleted == true
+          && resource.data.totalObligations == 0
+          && isActor(request.resource.data.deletedBy)
+          && request.resource.data.deletedAt == request.time;
+      }
+
+      // Any member: update the running obligation total, only alongside a ledger write
+      // committed in the same transaction (the ledger rules verify the exact delta).
+      // The entry must belong to THIS indicator (now, or before a move), so a ledger
+      // write cannot be used to change an unrelated indicator's total.
+      function ledgerSync() {
+        let entryId = request.resource.data.get('lastLedgerEntryId', '-');
+        let entry = getAfter(ledgerPath(entryId)).data;
+        return changed().hasOnly(['totalObligations', 'lastLedgerEntryId'])
+          && (entry.updatedAt == request.time || entry.get('deletedAt', null) == request.time)
+          && (entry.activityCode == code || get(ledgerPath(entryId)).data.activityCode == code);
+      }
+
+      allow update: if isMember()
+        && resource.data.isDeleted == false
+        && validIndicator(request.resource.data)
+        && immutableKept()
+        && (adminEdit() || adminRealign() || adminSoftDelete() || ledgerSync());
+
+      allow delete: if false;
+    }
+
+    // ---------- realignment logs (append-only) ----------
+    match /realignments/{id} {
+      allow read: if isMember();
+
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+            'sourceCode', 'sourceTitle', 'sourceObject', 'sourceAvailableBefore',
+            'targetCode', 'targetTitle', 'targetObject', 'targetAvailableBefore',
+            'amount', 'reason', 'createdBy', 'createdAt'])
+        && request.resource.data.amount is int && request.resource.data.amount > 0
+        && request.resource.data.sourceCode != request.resource.data.targetCode
+        && request.resource.data.reason is string && request.resource.data.reason.size() <= 500
+        && isActor(request.resource.data.createdBy)
+        && request.resource.data.createdAt == request.time
+        && getAfter(indicatorPath(request.resource.data.sourceCode)).data.realignment
+             == get(indicatorPath(request.resource.data.sourceCode)).data.realignment - request.resource.data.amount
+        && getAfter(indicatorPath(request.resource.data.targetCode)).data.realignment
+             == get(indicatorPath(request.resource.data.targetCode)).data.realignment + request.resource.data.amount;
+
+      allow update, delete: if false;
+    }
+
+    // ---------- obligation ledger ----------
+    function validLedger(d) {
+      return d.keys().hasOnly([
+          'activityCode', 'activityTitle', 'objectOfExpenditure', 'amount', 'date', 'particulars',
+          'isDeleted', 'createdBy', 'createdAt', 'updatedBy', 'updatedAt', 'deletedBy', 'deletedAt'])
+        && nonEmpty(d.activityCode, 50)
+        && d.amount is int && d.amount > 0
+        && d.date is string && d.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && d.particulars is string && d.particulars.size() <= 500
+        && d.isDeleted is bool;
+    }
+
+    // Title / object of expenditure must match the (active) indicator.
+    function matchesIndicator(d) {
+      let ind = getAfter(indicatorPath(d.activityCode)).data;
+      return ind.isDeleted == false
+        && d.activityTitle == ind.activityTitle
+        && d.objectOfExpenditure == ind.objectOfExpenses;
+    }
+
+    function obligationsAfter(code) { return getAfter(indicatorPath(code)).data.totalObligations; }
+    function obligationsBefore(code) { return get(indicatorPath(code)).data.totalObligations; }
+
+    match /ledger/{entryId} {
+      allow read: if isMember();
+
+      allow create: if isMember()
+        && validLedger(request.resource.data)
+        && request.resource.data.isDeleted == false
+        && isActor(request.resource.data.createdBy)
+        && request.resource.data.createdAt == request.time
+        && isActor(request.resource.data.updatedBy)
+        && request.resource.data.updatedAt == request.time
+        && matchesIndicator(request.resource.data)
+        && obligationsAfter(request.resource.data.activityCode)
+             == obligationsBefore(request.resource.data.activityCode) + request.resource.data.amount;
+
+      function editDelta() {
+        let n = request.resource.data;
+        let o = resource.data;
+        return (n.activityCode == o.activityCode
+                 && obligationsAfter(n.activityCode) == obligationsBefore(n.activityCode) + n.amount - o.amount)
+          || (n.activityCode != o.activityCode
+                 && obligationsAfter(o.activityCode) == obligationsBefore(o.activityCode) - o.amount
+                 && obligationsAfter(n.activityCode) == obligationsBefore(n.activityCode) + n.amount);
+      }
+
+      // Owner (or admin) edits an active entry.
+      function edit() {
+        return (isAdmin() || resource.data.createdBy.uid == request.auth.uid)
+          && request.resource.data.isDeleted == false
+          && changed().hasOnly(['activityCode', 'activityTitle', 'objectOfExpenditure', 'amount',
+                                'date', 'particulars', 'updatedBy', 'updatedAt'])
+          && isActor(request.resource.data.updatedBy)
+          && request.resource.data.updatedAt == request.time
+          && validLedger(request.resource.data)
+          && matchesIndicator(request.resource.data)
+          && editDelta();
+      }
+
+      // Admin soft delete: amount returns to the indicator's available balance.
+      function softDelete() {
+        return isAdmin()
+          && request.resource.data.isDeleted == true
+          && changed().hasOnly(['isDeleted', 'deletedBy', 'deletedAt'])
+          && isActor(request.resource.data.deletedBy)
+          && request.resource.data.deletedAt == request.time
+          && obligationsAfter(resource.data.activityCode)
+               == obligationsBefore(resource.data.activityCode) - resource.data.amount;
+      }
+
+      allow update: if isMember()
+        && resource.data.isDeleted == false
+        && (edit() || softDelete());
+
+      allow delete: if false;
+    }
+
+    // Everything else is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
