@@ -8,6 +8,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', end: true },
   { to: '/indicators', label: 'Budget Indicators' },
   { to: '/ledger', label: 'Obligation Ledger' },
+  { to: '/deleted', label: 'Deleted Records', role: ROLES.SYS_ADMIN },
   { to: '/settings', label: 'Settings', role: ROLES.SYS_ADMIN },
 ];
 

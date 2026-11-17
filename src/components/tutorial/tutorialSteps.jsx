@@ -36,7 +36,7 @@ const STEPS = [
     target: 'nav',
     title: 'Find your way around',
     body: {
-      [A]: <p>Use the sidebar to move between the <strong>Dashboard</strong>, <strong>Budget Indicators</strong>, the <strong>Obligation Ledger</strong> and <strong>Settings</strong>, where you manage users.</p>,
+      [A]: <p>Use the sidebar to move between the <strong>Dashboard</strong>, <strong>Budget Indicators</strong>, the <strong>Obligation Ledger</strong>, <strong>Deleted Records</strong> (the soft-deleted archive) and <strong>Settings</strong>, where you manage users.</p>,
       [U]: <p>Use the sidebar to move between the <strong>Dashboard</strong>, <strong>Budget Indicators</strong> and the <strong>Obligation Ledger</strong>.</p>,
     },
   },
@@ -112,7 +112,7 @@ const STEPS = [
     target: 'indicators-toolbar',
     title: 'Search & filter',
     body: {
-      [A]: <p>Search by activity code or title, or filter by Object of Expenses. Tick <strong>Show deleted</strong> to see soft-deleted indicators for audit.</p>,
+      [A]: <p>Search by activity code or title, or filter by Object of Expenses. Deleted indicators move to the <strong>Deleted Records</strong> page.</p>,
       [U]: <p>Search by activity code or title, or filter by Object of Expenses.</p>,
     },
   },
@@ -167,7 +167,7 @@ const STEPS = [
     target: 'ledger-toolbar',
     title: 'Find entries quickly',
     body: {
-      [A]: <p>Search by code, title or particulars, filter by indicator, tick <strong>My entries</strong> to see only your own, or tick <strong>Show deleted</strong> to review deleted entries.</p>,
+      [A]: <p>Search by code, title or particulars, filter by indicator, or tick <strong>My entries</strong> to see only your own.</p>,
       [U]: <p>Search by code, title or particulars, filter by indicator, or tick <strong>My entries</strong> to see only the obligations you encoded.</p>,
     },
   },
@@ -190,6 +190,19 @@ const STEPS = [
         </>
       ),
     },
+  },
+  {
+    id: 'deleted',
+    roles: [A],
+    route: '/deleted',
+    target: 'deleted-table',
+    title: 'Deleted Records',
+    body: (
+      <p>
+        Nothing is ever erased. Deleted indicators and obligations are listed here, with who deleted them and when. Switch between the two
+        with the tabs, and <strong>click any row</strong> for its full audit trail.
+      </p>
+    ),
   },
   {
     id: 'settings',
