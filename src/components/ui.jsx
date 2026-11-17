@@ -23,9 +23,9 @@ export function Alert({ tone = 'danger', children }) {
   );
 }
 
-export function Card({ title, actions, children, className = '', flush }) {
+export function Card({ title, actions, children, className = '', flush, tourId }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card ${className}`} data-tour={tourId}>
       {(title || actions) && (
         <header className="card-header">
           {title && <h2 className="card-title">{title}</h2>}
@@ -68,9 +68,9 @@ export function Spinner({ label = 'Loading…', full }) {
   );
 }
 
-export function Tabs({ tabs, value, onChange }) {
+export function Tabs({ tabs, value, onChange, tourId }) {
   return (
-    <div className="tabs" role="tablist">
+    <div className="tabs" role="tablist" data-tour={tourId}>
       {tabs.map((t) => (
         <button
           key={t.value}

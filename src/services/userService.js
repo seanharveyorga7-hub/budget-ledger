@@ -46,6 +46,11 @@ export function subscribeUsers(onData, onError) {
   );
 }
 
+/** Records that the user finished (or skipped) the onboarding tutorial. */
+export async function markTutorialComplete(uid) {
+  await updateDoc(userRef(uid), { tutorialCompletedAt: serverTimestamp() });
+}
+
 /** Admin promotes/demotes another user. Admins can never change their own role. */
 export async function updateUserRole(targetUid, role, actor) {
   if (targetUid === actor.uid) {

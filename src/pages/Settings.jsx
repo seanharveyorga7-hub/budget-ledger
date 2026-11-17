@@ -37,7 +37,7 @@ export default function Settings() {
       <PageHeader title="Settings" subtitle="Manage user roles. Only System Admins can see this page." />
       <Alert>{error && friendlyError(error)}</Alert>
 
-      <Card title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} System Admin(s)</span>} flush>
+      <Card tourId="settings-users" title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} System Admin(s)</span>} flush>
         {loading ? (
           <Spinner />
         ) : (

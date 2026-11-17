@@ -136,16 +136,17 @@ export default function Indicators() {
         subtitle={isAdmin ? 'Create, edit and realign budget indicators.' : 'Read-only view of approved budget indicators.'}
         actions={
           <IfRole role={ROLES.SYS_ADMIN}>
-            <Button variant="secondary" onClick={() => setRealignState({ open: true, source: '' })} disabled={indicators.length < 2}>
+            <Button variant="secondary" data-tour="indicators-realign" onClick={() => setRealignState({ open: true, source: '' })} disabled={indicators.length < 2}> 
               Realign Budget
             </Button>
-            <Button onClick={() => setFormState({ open: true, indicator: null })}>+ New Indicator</Button>
+            <Button data-tour="indicators-new" onClick={() => setFormState({ open: true, indicator: null })}>+ New Indicator</Button>
           </IfRole>
         }
       />
       <Alert>{error && friendlyError(error)}</Alert>
 
       <Tabs
+        tourId="indicators-tabs"
         value={tab}
         onChange={setTab}
         tabs={[
@@ -155,8 +156,8 @@ export default function Indicators() {
       />
 
       {tab === 'list' ? (
-        <Card flush>
-          <div className="toolbar">
+        <Card flush tourId="indicators-table">
+          <div className="toolbar" data-tour="indicators-toolbar">
             <input className="input" placeholder="Search code or title…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <select className="input" value={objectFilter} onChange={(e) => setObjectFilter(e.target.value)} aria-label="Object of expenses">
               <option value="">All objects</option>

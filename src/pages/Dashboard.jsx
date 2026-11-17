@@ -60,7 +60,7 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" subtitle="Budget position across all active indicators." />
       <Alert>{(ei || el) && friendlyError(ei || el)}</Alert>
 
-      <div className="stat-grid">
+      <div className="stat-grid" data-tour="dashboard-stats">
         <StatCard label="Annual Budget" value={formatCentavos(totals.annual)} hint={`${indicators.length} active indicators`} />
         <StatCard label="Adjusted Budget" value={formatCentavos(totals.adjusted)} hint="Annual budget + realignments" />
         <StatCard label="Total Obligations" value={formatCentavos(totals.obligations)} hint={`${entries.length} active entries`} />
@@ -68,7 +68,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid-2 grid-gap-lg">
-        <Card title="By Object of Expenses" flush>
+        <Card title="By Object of Expenses" flush tourId="dashboard-object">
           <DataTable
             rows={byObject}
             emptyMessage="No indicators yet."
@@ -82,7 +82,7 @@ export default function Dashboard() {
           />
         </Card>
 
-        <Card title="Indicators at or above 80% utilization" flush actions={<Link to="/indicators" className="link">View all</Link>}>
+        <Card title="Indicators at or above 80% utilization" flush tourId="dashboard-risk" actions={<Link to="/indicators" className="link">View all</Link>}>
           <DataTable
             rows={atRisk}
             emptyMessage="No indicator is above 80% utilization."
@@ -98,6 +98,7 @@ export default function Dashboard() {
 
       <Card
         title="Monthly Allocation vs. Obligations"
+        tourId="dashboard-monthly"
         flush
         actions={
           <select className="input input-sm" value={year} onChange={(e) => setYear(Number(e.target.value))} aria-label="Year">

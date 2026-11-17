@@ -77,6 +77,12 @@ await expectFail('user cannot create profile as admin', () =>
   setDoc(doc(db, 'users', me.uid), { uid: me.uid, email: 'x', displayName: 'x', role: 'sys_admin', createdAt: serverTimestamp() }), 'permission-denied');
 await expectFail('user cannot change another role', () => userService.updateUserRole(users.bob.uid, 'sys_admin', me), 'permission-denied');
 await expectOk('user can rename self', () => updateDoc(doc(db, 'users', me.uid), { displayName: 'Alice U.' }));
+await expectOk('user can mark tutorial complete', () => userService.markTutorialComplete(me.uid));
+await expectFail('tutorial flag must be server time', () =>
+  updateDoc(doc(db, 'users', me.uid), { tutorialCompletedAt: new Date('2000-01-01') }), 'permission-denied');
+await expectFail('cannot sneak a role change in with the tutorial flag', () =>
+  updateDoc(doc(db, 'users', me.uid), { tutorialCompletedAt: serverTimestamp(), role: 'sys_admin' }), 'permission-denied');
+await expectFail("cannot mark another user's tutorial", () => userService.markTutorialComplete(users.bob.uid), 'permission-denied');
 
 me = await as('admin');
 await expectFail('admin cannot change own role (service)', () => userService.updateUserRole(me.uid, 'user', me), 'ValidationError');

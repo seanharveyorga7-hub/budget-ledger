@@ -63,7 +63,7 @@ export default function Ledger() {
         title="Obligation Ledger"
         subtitle="Every obligation is checked against the indicator's available balance before it is saved."
         actions={
-          <Button onClick={() => setFormState({ open: true, entry: null })} disabled={indicators.length === 0}>
+          <Button data-tour="ledger-new" onClick={() => setFormState({ open: true, entry: null })} disabled={indicators.length === 0}>
             + New Obligation
           </Button>
         }
@@ -71,8 +71,8 @@ export default function Ledger() {
       <Alert>{(ei || el) && friendlyError(ei || el)}</Alert>
       {!li && indicators.length === 0 && <Alert tone="info">No active Budget Indicators yet. A System Admin must create one first.</Alert>}
 
-      <Card flush>
-        <div className="toolbar">
+      <Card flush tourId="ledger-table">
+        <div className="toolbar" data-tour="ledger-toolbar">
           <input className="input" placeholder="Search code, title or particulars…" value={search} onChange={(e) => setSearch(e.target.value)} />
           <select className="input" value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)} aria-label="Indicator">
             <option value="">All indicators</option>
