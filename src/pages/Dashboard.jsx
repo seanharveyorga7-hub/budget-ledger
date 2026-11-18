@@ -12,7 +12,9 @@ import { OBJECTS_OF_EXPENSES } from '../utils/constants';
 import { friendlyError } from '../utils/errors';
 
 export default function Dashboard() {
-  const { indicators, loading: li, error: ei } = useIndicators();
+  const { all, indicators, loading: li, error: ei } = useIndicators();
+  // Deleted indicators whose realignment isn't zero: where the "missing" realigned money sits.
+  const strandedIn = useMemo(() => all.filter((i) => i.isDeleted && i.realignment !== 0), [all]);
   const { entries, loading: ll, error: el } = useLedger();
 
   const years = useMemo(() => {
@@ -74,6 +76,18 @@ export default function Dashboard() {
           {totals.adjusted > totals.annual
             ? `${formatCentavos(totals.adjusted - totals.annual)} of the realignments on active indicators came from indicators that were later deleted, so the Adjusted Budget is higher than the Annual Budget.`
             : `${formatCentavos(totals.annual - totals.adjusted)} was realigned from active indicators to indicators that were later deleted, so the Adjusted Budget is lower than the Annual Budget.`}{' '}
+          {strandedIn.length > 0 && (
+            <>
+              Deleted indicators still holding realigned funds:{' '}
+              {strandedIn.map((i, n) => (
+                <span key={i.activityCode}>
+                  {n > 0 && ', '}
+                  <strong>{i.activityCode}</strong> ({formatCentavos(i.realignment)})
+                </span>
+              ))}
+              .{' '}
+            </>
+          )}
           Each transfer is listed under <Link to="/indicators" className="link">Budget Indicators → Realignment Log</Link>.
         </Alert>
       )}

@@ -124,6 +124,7 @@ service cloud.firestore {
       // Admin realignment: must be paired with a realignment log written in this transaction.
       function adminRealign() {
         return isAdmin()
+          && resource.data.isDeleted == false   // deleted indicators can't send or receive funds
           && changed().hasOnly(['realignment', 'lastRealignmentId', 'updatedBy', 'updatedAt'])
           && isActor(request.resource.data.updatedBy)
           && request.resource.data.updatedAt == request.time

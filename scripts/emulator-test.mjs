@@ -195,6 +195,15 @@ await expectFail('rules block deleting indicator with realigned funds', () =>
 await expectOk('realign ₱250 back B-002 → A-001', () => realignBudget({ sourceCode: 'B-002', targetCode: 'A-001', amount: 25000, reason: 'Return funds' }, me));
 await expectEqual('B-002 realignment back to 0', await realign('B-002'), 0);
 await expectOk('admin soft-deletes empty B-002', () => ind.softDeleteIndicator('B-002', me));
+await expectFail('rules block realigning into a deleted indicator', async () => {
+  const b = writeBatch(db);
+  const logRef = doc(collection(db, 'realignments'));
+  const aReal = await realign('A-001');
+  b.set(logRef, { sourceCode: 'A-001', sourceTitle: 'x', sourceObject: 'PS', sourceAvailableBefore: 0, targetCode: 'B-002', targetTitle: 'x', targetObject: 'CO', targetAvailableBefore: 0, amount: 100, reason: 'sneaky', createdBy: me, createdAt: serverTimestamp() });
+  b.update(ind.indicatorRef('A-001'), { realignment: aReal - 100, lastRealignmentId: logRef.id, updatedBy: me, updatedAt: serverTimestamp() });
+  b.update(ind.indicatorRef('B-002'), { realignment: 100, lastRealignmentId: logRef.id, updatedBy: me, updatedAt: serverTimestamp() });
+  await b.commit();
+}, 'permission-denied');
 await expectFail('no obligations on deleted indicator', () =>
   ledger.createLedgerEntry({ activityCode: 'B-002', amount: 1, date: '2026-05-01', particulars: '' }, me), 'ValidationError');
 await expectFail('hard delete of indicator blocked', () => deleteDoc(ind.indicatorRef('A-001')), 'permission-denied');
