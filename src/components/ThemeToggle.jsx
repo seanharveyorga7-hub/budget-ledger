@@ -12,7 +12,7 @@ export default function ThemeToggle({ className = '' }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#1b1916' : '#B45309');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#17181b' : '#B45309');
   }, [theme]);
 
   const toggle = () => {
