@@ -7,7 +7,7 @@ import { friendlyError } from '../utils/errors';
 import LoginHero from '../components/auth/LoginHero';
 
 export default function Login() {
-  const { user, profile, loading, error: authError, signIn, register, resetPassword, logOut } = useAuth();
+  const { user, profile, isInactive, loading, error: authError, signIn, register, resetPassword, logOut } = useAuth();
   const location = useLocation();
   const [mode, setMode] = useState('signin'); // signin | register | reset
   const [name, setName] = useState('');
@@ -16,6 +16,18 @@ export default function Login() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [busy, setBusy] = useState(false);
+
+  if (user && isInactive) {
+    return (
+      <div className="auth-screen">
+        <div className="auth-card">
+          <h1 className="auth-title">Account inactive</h1>
+          <Alert>Contact a System Admin to restore your access.</Alert>
+          <Button variant="ghost" onClick={logOut}>Sign out</Button>
+        </div>
+      </div>
+    );
+  }
 
   if (user && profile) return <Navigate to={location.state?.from?.pathname || '/'} replace />;
 
