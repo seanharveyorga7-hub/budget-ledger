@@ -2,7 +2,6 @@
 // indicator's running `totalObligations`, so concurrent submissions can never
 // push an indicator past its available balance. firestore.rules check the
 // same rule on the server.
-import { collection, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 // Obligation Ledger: the "Atomic Obligation Ledger Creation & Edit" flow.
 //
 //   (client check in utils: done by useLedgerActions before these functions run)
@@ -20,7 +19,7 @@ import { collection, doc, onSnapshot, orderBy, query, runTransaction, serverTime
 //     → conflict: Firestore re-runs the transaction from the top (up to TX_MAX_ATTEMPTS)
 //     → retries used up or other failure: save error
 //     → success: returns the saved entry id and the updated available balance
-import { collection, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, onSnapshot, orderBy, query, runTransaction, serverTimestamp, where } from 'firebase/firestore';
 import { db, COLLECTIONS } from '../lib/firebase';
 import { ValidationError } from '../utils/errors';
 import { assertSufficientBalance, availableBalance } from '../utils/balance';

@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { createLedgerEntry, softDeleteLedgerEntry, subscribeLedger, updateLedgerEntry } from '../services/ledgerService';
 import { validateLedgerSubmission } from '../utils/validators';
 import { useSubscription } from './useSubscription';
-import { useAuth } from '../contexts/AuthContext';
 
 /** Live list of ledger entries (real-time updates from Firestore). */
 export function useLedger() {
