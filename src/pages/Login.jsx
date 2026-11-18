@@ -22,15 +22,15 @@ export default function Login() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <h1 className="auth-title">{profile?.isDeleted ? 'Account deleted' : 'Account inactive'}</h1>
-          <Alert>{profile?.isDeleted ? 'Contact a System Admin if you need help.' : 'Contact a System Admin to restore your access.'}</Alert>
+          <h1 className="auth-title">Account inactive</h1>
+          <Alert>Contact a System Admin to restore your access.</Alert>
           <Button variant="ghost" onClick={logOut}>Sign out</Button>
         </div>
       </div>
     );
   }
 
-  if (user && !loading && !authError && profile) return <Navigate to={location.state?.from?.pathname || '/'} replace />;
+  if (user && profile) return <Navigate to={location.state?.from?.pathname || '/'} replace />;
 
   // Signed in to Firebase Auth, but the Firestore profile step is still running or failed.
   if (user && (loading || authError || !profile)) {
