@@ -84,11 +84,6 @@ export default function Ledger() {
           {isAdmin && <label className="checkbox">
             <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> My entries
           </label>}
-          {isAdmin && (
-            <label className="checkbox">
-              <input type="checkbox" checked={showDeleted} onChange={(e) => setShowDeleted(e.target.checked)} /> Show deleted
-            </label>
-          )}
         </div>
 
         {ll ? (
