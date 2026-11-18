@@ -118,8 +118,14 @@ export default function Indicators() {
               size="sm"
               variant="ghost-danger"
               onClick={() => setToDelete(i)}
-              disabled={i.totalObligations > 0}
-              title={i.totalObligations > 0 ? 'Has active obligations' : 'Soft delete'}
+              disabled={i.totalObligations > 0 || i.realignment !== 0}
+              title={
+                i.totalObligations > 0
+                  ? 'Has active obligations'
+                  : i.realignment !== 0
+                    ? 'Has realigned funds: realign them back to ₱0.00 first'
+                    : 'Soft delete'
+              }
             >
               Delete
             </Button>

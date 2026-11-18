@@ -189,6 +189,11 @@ const deleted = (await getDoc(doc(db, 'ledger', e1))).data();
 await expectEqual('entry isDeleted', deleted.isDeleted, true);
 await expectEqual('entry deletedBy recorded', deleted.deletedBy?.uid, me.uid);
 await expectFail('cannot delete indicator with obligations', () => ind.softDeleteIndicator('A-001', me), 'ValidationError');
+await expectFail('cannot delete indicator with realigned funds', () => ind.softDeleteIndicator('B-002', me), 'ValidationError');
+await expectFail('rules block deleting indicator with realigned funds', () =>
+  updateDoc(ind.indicatorRef('B-002'), { isDeleted: true, deletedBy: me, deletedAt: serverTimestamp() }), 'permission-denied');
+await expectOk('realign ₱250 back B-002 → A-001', () => realignBudget({ sourceCode: 'B-002', targetCode: 'A-001', amount: 25000, reason: 'Return funds' }, me));
+await expectEqual('B-002 realignment back to 0', await realign('B-002'), 0);
 await expectOk('admin soft-deletes empty B-002', () => ind.softDeleteIndicator('B-002', me));
 await expectFail('no obligations on deleted indicator', () =>
   ledger.createLedgerEntry({ activityCode: 'B-002', amount: 1, date: '2026-05-01', particulars: '' }, me), 'ValidationError');

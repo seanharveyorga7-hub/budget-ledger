@@ -67,6 +67,17 @@ export default function Dashboard() {
         <StatCard label="Available Balance" value={formatCentavos(totals.available)} hint={`${formatPercent(totals.utilization)} utilized`} tone="accent" />
       </div>
 
+      {/* Realignments always net to zero across ALL indicators; a non-zero net here means
+          some transfers involved indicators that were deleted afterwards. */}
+      {totals.adjusted !== totals.annual && (
+        <Alert tone="info">
+          {totals.adjusted > totals.annual
+            ? `${formatCentavos(totals.adjusted - totals.annual)} of the realignments on active indicators came from indicators that were later deleted, so the Adjusted Budget is higher than the Annual Budget.`
+            : `${formatCentavos(totals.annual - totals.adjusted)} was realigned from active indicators to indicators that were later deleted, so the Adjusted Budget is lower than the Annual Budget.`}{' '}
+          Each transfer is listed under <Link to="/indicators" className="link">Budget Indicators → Realignment Log</Link>.
+        </Alert>
+      )}
+
       <div className="grid-2 grid-gap-lg">
         <Card title="By Object of Expenses" flush tourId="dashboard-object">
           <DataTable
