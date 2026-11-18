@@ -14,7 +14,7 @@ import RealignmentModal from '../components/indicators/RealignmentModal';
 import { adjustedBudget, availableBalance, utilizationRate, utilizationTone } from '../utils/balance';
 import { formatAmount, formatCentavos, formatPercent } from '../utils/currency';
 import { formatTimestamp } from '../utils/dates';
-import { OBJECTS_OF_EXPENSES, ROLES } from '../utils/constants';
+import { LEGACY_OBJECTS, OBJECTS_OF_EXPENSES, ROLES, objectLabel } from '../utils/constants';
 import { friendlyError } from '../utils/errors';
 
 export default function Indicators() {
@@ -82,7 +82,7 @@ export default function Indicators() {
         </>
       ),
     },
-    { key: 'objectOfExpenses', header: 'Object', render: (i) => <Badge tone="accent">{i.objectOfExpenses}</Badge> },
+    { key: 'objectOfExpenses', header: 'Object', className: 'cell-wrap', render: (i) => <Badge tone="accent">{objectLabel(i.objectOfExpenses)}</Badge> },
     {
       key: 'annualBudget',
       header: 'Annual Budget',
@@ -186,9 +186,17 @@ export default function Indicators() {
               <option value="">All objects</option>
               {OBJECTS_OF_EXPENSES.map((o) => (
                 <option key={o.value} value={o.value}>
-                  {o.value}
+                  {o.label}
                 </option>
               ))}
+              {/* old codes, only while some indicator still uses one */}
+              {Object.keys(LEGACY_OBJECTS)
+                .filter((code) => indicators.some((i) => i.objectOfExpenses === code))
+                .map((code) => (
+                  <option key={code} value={code}>
+                    {objectLabel(code)} (old)
+                  </option>
+                ))}
             </select>
           </div>
           {loading ? (
@@ -256,8 +264,8 @@ function RealignmentLog() {
         emptyMessage="No realignments yet."
         columns={[
           { key: 'createdAt', header: 'Date', render: (r) => formatTimestamp(r.createdAt) },
-          { key: 'source', header: 'From', render: (r) => <span title={r.sourceTitle}><strong>{r.sourceCode}</strong> <Badge>{r.sourceObject}</Badge></span> },
-          { key: 'target', header: 'To', render: (r) => <span title={r.targetTitle}><strong>{r.targetCode}</strong> <Badge>{r.targetObject}</Badge></span> },
+          { key: 'source', header: 'From', render: (r) => <span title={r.sourceTitle}><strong>{r.sourceCode}</strong> <span className="muted small">· {objectLabel(r.sourceObject)}</span></span> },
+          { key: 'target', header: 'To', render: (r) => <span title={r.targetTitle}><strong>{r.targetCode}</strong> <span className="muted small">· {objectLabel(r.targetObject)}</span></span> },
           { key: 'amount', header: 'Amount', align: 'right', render: (r) => <strong>{formatCentavos(r.amount)}</strong> },
           { key: 'reason', header: 'Reason', className: 'cell-wrap' },
           { key: 'by', header: 'By', render: (r) => r.createdBy?.name },

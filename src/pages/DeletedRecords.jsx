@@ -10,6 +10,7 @@ import { formatAmount } from '../utils/currency';
 import { formatISODate, formatTimestamp } from '../utils/dates';
 import { ROLE_LABELS } from '../utils/constants';
 import { friendlyError } from '../utils/errors';
+import { objectLabel } from '../utils/constants';
 
 const byDeletedAtDesc = (a, b) => (b.deletedAt?.toMillis?.() ?? 0) - (a.deletedAt?.toMillis?.() ?? 0);
 
@@ -84,7 +85,7 @@ export default function DeletedRecords() {
               columns={[
                 { key: 'activityCode', header: 'Code', render: (i) => <strong>{i.activityCode}</strong> },
                 { key: 'activityTitle', header: 'Activity Title', className: 'cell-wrap' },
-                { key: 'objectOfExpenses', header: 'Object', render: (i) => <Badge tone="accent">{i.objectOfExpenses}</Badge> },
+                { key: 'objectOfExpenses', header: 'Object', className: 'cell-wrap', render: (i) => objectLabel(i.objectOfExpenses) },
                 { key: 'annualBudget', header: 'Annual Budget', align: 'right', render: (i) => formatAmount(i.annualBudget) },
                 ...deletedCols,
               ]}

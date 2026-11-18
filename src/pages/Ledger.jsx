@@ -11,6 +11,7 @@ import LedgerDetailModal from '../components/ledger/LedgerDetailModal';
 import { formatAmount, formatCentavos } from '../utils/currency';
 import { formatISODate } from '../utils/dates';
 import { friendlyError } from '../utils/errors';
+import { objectLabel } from '../utils/constants';
 
 export default function Ledger() {
   const { isAdmin, user } = useAuth();
@@ -107,7 +108,7 @@ export default function Ledger() {
                   </>
                 ),
               },
-              { key: 'objectOfExpenditure', header: 'Object', render: (e) => <Badge tone="accent">{e.objectOfExpenditure}</Badge> },
+              { key: 'objectOfExpenditure', header: 'Object', className: 'cell-wrap', render: (e) => objectLabel(e.objectOfExpenditure) },
               { key: 'particulars', header: 'Particulars', className: 'cell-truncate' },
               { key: 'amount', header: 'Amount', align: 'right', render: (e) => <strong>{formatAmount(e.amount)}</strong> },
               { key: 'by', header: 'Encoded by', render: (e) => e.createdBy?.name },

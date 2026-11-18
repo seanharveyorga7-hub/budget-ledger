@@ -7,6 +7,7 @@ import { useIndicatorActions } from '../../hooks/useIndicators';
 import { availableBalance } from '../../utils/balance';
 import { formatCentavos, parseToCentavos } from '../../utils/currency';
 import { friendlyError } from '../../utils/errors';
+import { objectLabel } from '../../utils/constants';
 
 export default function RealignmentModal({ open, onClose, indicators, defaultSource }) {
   const actions = useIndicatorActions();
@@ -37,7 +38,7 @@ export default function RealignmentModal({ open, onClose, indicators, defaultSou
 
   const option = (i) => ({
     value: i.activityCode,
-    label: `${i.activityCode} · ${i.objectOfExpenses} · ${i.activityTitle} (avail. ${formatCentavos(availableBalance(i))})`,
+    label: `${i.activityCode} · ${objectLabel(i.objectOfExpenses)} · ${i.activityTitle} (avail. ${formatCentavos(availableBalance(i))})`,
   });
 
   const canSave = src && tgt && amountCentavos > 0 && !exceeds && reason.trim() && !saving;

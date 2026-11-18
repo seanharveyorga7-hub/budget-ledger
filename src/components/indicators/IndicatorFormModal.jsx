@@ -5,7 +5,7 @@ import { Alert, Button } from '../ui';
 import { MoneyField, SelectField, TextField } from '../FormControls';
 import { useToast } from '../../contexts/ToastContext';
 import { useIndicatorActions } from '../../hooks/useIndicators';
-import { OBJECTS_OF_EXPENSES } from '../../utils/constants';
+import { OBJECTS_OF_EXPENSES, isLegacyObject, objectLabel } from '../../utils/constants';
 import { centavosToInput, formatCentavos, parseToCentavos } from '../../utils/currency';
 import { autoDistribute, validateMonthlyAllocation } from '../../utils/monthly';
 import { friendlyError } from '../../utils/errors';
@@ -42,6 +42,12 @@ export default function IndicatorFormModal({ open, indicator, onClose }) {
   const monthly = budgetCentavos !== null && monthsValid ? validateMonthlyAllocation(monthCentavos, budgetCentavos) : null;
   const minBudget = indicator ? indicator.totalObligations - (indicator.realignment || 0) : 0;
   const lockObject = isEdit && indicator.totalObligations > 0;
+  // Keep an old code (PS/MOOE/CO/FE) selectable only on the record that already has it.
+  const currentObject = indicator?.objectOfExpenses;
+  const objectOptions = [
+    ...(isLegacyObject(currentObject) ? [{ value: currentObject, label: `${objectLabel(currentObject)} (old)` }] : []),
+    ...OBJECTS_OF_EXPENSES,
+  ];
 
   const canSave = code.trim() && title.trim() && object && budgetCentavos !== null && monthly?.ok && !saving;
 
@@ -108,9 +114,9 @@ export default function IndicatorFormModal({ open, indicator, onClose }) {
             value={object}
             onChange={(e) => setObject(e.target.value)}
             placeholder="Select…"
-            options={OBJECTS_OF_EXPENSES.map((o) => ({ value: o.value, label: `${o.value} — ${o.label}` }))}
+            options={objectOptions}
             disabled={lockObject}
-            hint={lockObject ? 'Locked while the indicator has obligations.' : undefined}
+            hint={lockObject ? 'Locked while the indicator has obligations.' : isLegacyObject(object) ? 'Old category. Choose one from the new list when you can.' : undefined}
             required
           />
         </div>

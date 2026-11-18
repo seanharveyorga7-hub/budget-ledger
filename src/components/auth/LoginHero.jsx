@@ -78,9 +78,9 @@ export default function LoginHero() {
           <div className="hero-card-head">
             <div>
               <div className="hero-code">ICT-2026</div>
-              <div className="hero-card-sub">ICT Equipment &amp; Services</div>
+              <div className="hero-card-sub">ICT Office Supplies Expenses</div>
             </div>
-            <span className="hero-pill">MOOE</span>
+            <span className="hero-pill">2026</span>
           </div>
           <div className="hero-label">Available balance</div>
           <div className="hero-amount">₱1,250,000.00</div>

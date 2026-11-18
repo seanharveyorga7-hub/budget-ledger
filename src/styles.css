@@ -475,3 +475,6 @@ code { background: var(--surface-muted); padding: 1px 5px; border-radius: 4px; f
   border: 1.5px solid var(--primary); color: var(--primary); font-size: 12px; font-weight: 700;
   vertical-align: -3px; margin: 0 2px;
 }
+
+/* crash screen */
+.error-details { margin: 0; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--danger-soft); color: var(--danger); font-size: 12px; white-space: pre-wrap; word-break: break-word; }
