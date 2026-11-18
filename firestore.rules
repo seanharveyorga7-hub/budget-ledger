@@ -20,8 +20,12 @@ service cloud.firestore {
     function profilePath() { return /databases/$(database)/documents/users/$(request.auth.uid); }
     function hasProfile() { return signedIn() && exists(profilePath()); }
     function myRole() { return get(profilePath()).data.role; }
-    function isAdmin() { return hasProfile() && myRole() == 'sys_admin'; }
-    function isMember() { return hasProfile() && myRole() in ['sys_admin', 'user']; }
+    // Profiles created before account status was added are active by default.
+    function hasActiveProfile() {
+      return hasProfile() && get(profilePath()).data.get('isActive', true) == true;
+    }
+    function isAdmin() { return hasActiveProfile() && myRole() == 'sys_admin'; }
+    function isMember() { return hasActiveProfile() && myRole() in ['sys_admin', 'user']; }
 
     function indicatorPath(code) { return /databases/$(database)/documents/indicators/$(code); }
     function ledgerPath(id) { return /databases/$(database)/documents/ledger/$(id); }
@@ -37,6 +41,7 @@ service cloud.firestore {
 
     // ---------- users ----------
     match /users/{uid} {
+      // Inactive users still need to read their own profile to receive status changes.
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
 
       // Self-registration always starts as a normal user.
@@ -48,7 +53,7 @@ service cloud.firestore {
 
       allow update: if signedIn() && (
         // a user may only change their own display name and tutorial-completion time
-        (request.auth.uid == uid
+        (request.auth.uid == uid && hasActiveProfile()
           && changed().hasOnly(['displayName', 'tutorialCompletedAt'])
           && nonEmpty(request.resource.data.displayName, 100)
           && (!('tutorialCompletedAt' in changed())
@@ -60,6 +65,12 @@ service cloud.firestore {
           && request.resource.data.role in ['sys_admin', 'user']
           && isActor(request.resource.data.roleUpdatedBy)
           && request.resource.data.roleUpdatedAt == request.time)
+        ||
+        (isAdmin() && request.auth.uid != uid
+          && changed().hasOnly(['isActive', 'statusUpdatedBy', 'statusUpdatedAt'])
+          && request.resource.data.isActive is bool
+          && isActor(request.resource.data.statusUpdatedBy)
+          && request.resource.data.statusUpdatedAt == request.time)
       );
 
       allow delete: if false;

@@ -65,3 +65,15 @@ export async function updateUserRole(targetUid, role, actor) {
     roleUpdatedAt: serverTimestamp(),
   });
 }
+
+/** Admin changes another user's access to the ledger app. */
+export async function updateUserStatus(targetUid, isActive, actor) {
+  if (targetUid === actor.uid) {
+    throw new ValidationError('You cannot change your own account status.');
+  }
+  await updateDoc(userRef(targetUid), {
+    isActive,
+    statusUpdatedBy: actor,
+    statusUpdatedAt: serverTimestamp(),
+  });
+}

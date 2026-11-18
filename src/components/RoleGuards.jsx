@@ -5,11 +5,11 @@ import { Alert, Button, Spinner } from './ui';
 
 /** Requires a signed-in user with a loaded profile. */
 export function ProtectedRoute({ children }) {
-  const { user, profile, loading, error, logOut } = useAuth();
+  const { user, profile, isInactive, loading, error, logOut } = useAuth();
   const location = useLocation();
 
   if (loading) return <Spinner full label="Loading your account…" />;
-  if (!user) return <Navigate to="/login" replace state={{ from: location }} />;
+  if (!user || isInactive) return <Navigate to="/login" replace state={{ from: location }} />;
   if (error || !profile) {
     return (
       <div className="center-screen">

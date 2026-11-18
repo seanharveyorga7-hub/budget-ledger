@@ -12,15 +12,22 @@ import { friendlyError } from '../utils/errors';
 export default function Settings() {
   const { user } = useAuth();
   const toast = useToast();
-  const { users, loading, error, updateRole } = useUsers();
-  const [pending, setPending] = useState(null); // { target, role }
+  const { users, loading, error, updateRole, updateStatus } = useUsers();
+  const [pending, setPending] = useState(null);
   const [saving, setSaving] = useState(false);
+  const changesStatus = typeof pending?.isActive === 'boolean';
+  const statusAction = pending?.isActive ? 'Activate' : 'Deactivate';
 
   const confirmChange = async () => {
     setSaving(true);
     try {
-      await updateRole(pending.target.uid, pending.role);
-      toast.success(`${pending.target.displayName} is now a ${ROLE_LABELS[pending.role]}.`);
+      if (changesStatus) {
+        await updateStatus(pending.target.uid, pending.isActive);
+        toast.success(`${pending.target.displayName} is now ${pending.isActive ? 'active' : 'inactive'}.`);
+      } else {
+        await updateRole(pending.target.uid, pending.role);
+        toast.success(`${pending.target.displayName} is now a ${ROLE_LABELS[pending.role]}.`);
+      }
       setPending(null);
     } catch (err) {
       toast.error(friendlyError(err));
@@ -29,14 +36,14 @@ export default function Settings() {
     }
   };
 
-  const adminCount = users.filter((u) => u.role === ROLES.SYS_ADMIN).length;
+  const adminCount = users.filter((u) => u.role === ROLES.SYS_ADMIN && u.isActive !== false).length;
 
   return (
     <div className="page">
-      <PageHeader title="Settings" subtitle="Manage user roles. Only System Admins can see this page." />
+      <PageHeader title="Settings" subtitle="Manage user roles and account access." />
       <Alert>{error && friendlyError(error)}</Alert>
 
-      <Card tourId="settings-users" title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} System Admin(s)</span>} flush>
+      <Card tourId="settings-users" title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} active System Admin(s)</span>} flush>
         {loading ? (
           <Spinner />
         ) : (
@@ -54,6 +61,29 @@ export default function Settings() {
                 ),
               },
               { key: 'email', header: 'Email' },
+              {
+                key: 'isActive',
+                header: 'Status',
+                render: (u) => {
+                  const isActive = u.isActive !== false;
+                  const isSelf = u.uid === user.uid;
+                  return (
+                    <button
+                      type="button"
+                      className="status-switch"
+                      role="switch"
+                      aria-checked={isActive}
+                      aria-label={`Account active for ${u.displayName}`}
+                      disabled={isSelf}
+                      title={isSelf ? 'Another System Admin can change your account status.' : undefined}
+                      onClick={() => setPending({ target: u, isActive: !isActive })}
+                    >
+                      <span className="status-switch-track" aria-hidden="true" />
+                      {isActive ? 'Active' : 'Inactive'}
+                    </button>
+                  );
+                },
+              },
               { key: 'createdAt', header: 'Registered', render: (u) => formatTimestamp(u.createdAt) },
               {
                 key: 'roleUpdatedBy',
@@ -85,22 +115,26 @@ export default function Settings() {
         )}
       </Card>
       <p className="muted small">
-        You cannot remove your own admin access. Another System Admin must do it, so there is always at least one admin.
+        Only another System Admin can change your role or account status.
       </p>
 
       <ConfirmDialog
         open={Boolean(pending)}
-        tone="primary"
-        title="Change role?"
+        tone={changesStatus && !pending.isActive ? 'danger' : 'primary'}
+        title={changesStatus ? `${statusAction} account?` : 'Change role?'}
         message={
-          pending && (
+          pending && (changesStatus ? (
+            <>
+              {statusAction} app access for <strong>{pending.target.displayName}</strong> ({pending.target.email})?
+            </>
+          ) : (
             <>
               Change <strong>{pending.target.displayName}</strong> ({pending.target.email}) from {ROLE_LABELS[pending.target.role]} to{' '}
               <strong>{ROLE_LABELS[pending.role]}</strong>?
             </>
-          )
+          ))
         }
-        confirmLabel="Change role"
+        confirmLabel={changesStatus ? statusAction : 'Change role'}
         busy={saving}
         onConfirm={confirmChange}
         onCancel={() => setPending(null)}
