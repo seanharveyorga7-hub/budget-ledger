@@ -6,7 +6,7 @@ A web app for tracking budget indicators and the obligations recorded against th
 
 | Module | What it does |
 |---|---|
-| **Budget Indicators** | Admins can create, edit and soft-delete indicators. Each Activity Code is unique. The 12-month allocation has an **Auto-Distribute** button (any centavo remainder goes to December) and must add up exactly to the Annual Budget before it can be saved. |
+| **Budget Indicators** | Admins can create, edit and soft-delete indicators (only when nothing is obligated against it and its Realignment is ₱0.00, so realigned money never disappears). Each Activity Code is unique. The 12-month allocation has an **Auto-Distribute** button (any centavo remainder goes to December) and must add up exactly to the Annual Budget before it can be saved. |
 | **Budget Realignment** | Moves funds from a source indicator to a target indicator in one atomic `runTransaction()`, after checking the source has enough available balance. Each transfer writes an append-only realignment log. |
 | **Obligation Ledger** | Members record obligations against active indicators. Title and Object of Expenditure are filled in from the indicator. Entries are created and edited inside `runTransaction()`, so two users saving at once can never overspend an indicator. |
 | **Audit trail & soft delete** | Every indicator and ledger document stores `createdBy/At`, `updatedBy/At` and `deletedBy/At`. The app never calls `deleteDoc()`, and the rules reject hard deletes. Soft-deleting a ledger entry returns its amount to the indicator's available balance. |
@@ -151,7 +151,7 @@ Each indicator keeps a running total, `totalObligations`, so checking the balanc
 
 ## Testing
 
-`npm run test:emulator` starts the Firebase Emulator Suite and runs `scripts/emulator-test.mjs`. That script calls the app's real services and the deployed rules, and covers 47 cases: RBAC, unique codes, the month-sum check, a concurrent over-budget race, ledger edits that move an entry between indicators, realignment, soft delete and blocked hard deletes. It needs **Java 11+**. `firebase-tools` is fetched with `npx`.
+`npm run test:emulator` starts the Firebase Emulator Suite and runs `scripts/emulator-test.mjs`. That script calls the app's real services and the deployed rules, and covers 59 cases: RBAC, unique codes, the month-sum check, a concurrent over-budget race, ledger edits that move an entry between indicators, realignment, soft delete and blocked hard deletes. It needs **Java 11+**. `firebase-tools` is fetched with `npx`.
 
 To develop against the emulators instead of a live project, set `VITE_USE_EMULATORS=true` in `.env.local` and run `firebase emulators:start` in a second terminal.
 

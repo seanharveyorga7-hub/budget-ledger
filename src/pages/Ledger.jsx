@@ -17,12 +17,11 @@ export default function Ledger() {
   const ledgerActions = useLedgerActions();
   const toast = useToast();
   const { indicators, loading: li, error: ei } = useIndicators();
-  const { all, entries, loading: ll, error: el } = useLedger();
+  const { entries, loading: ll, error: el } = useLedger();
 
   const [search, setSearch] = useState('');
   const [codeFilter, setCodeFilter] = useState('');
   const [mineOnly, setMineOnly] = useState(false);
-  const [showDeleted, setShowDeleted] = useState(false);
   const [formState, setFormState] = useState({ open: false, entry: null });
   const [detail, setDetail] = useState(null);
   const [toDelete, setToDelete] = useState(null);
@@ -30,7 +29,7 @@ export default function Ledger() {
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (showDeleted && isAdmin ? all : entries).filter(
+    return entries.filter(
       (e) =>
         (!codeFilter || e.activityCode === codeFilter) &&
         (!mineOnly || e.createdBy?.uid === user.uid) &&
@@ -39,7 +38,7 @@ export default function Ledger() {
           e.activityTitle.toLowerCase().includes(term) ||
           (e.particulars || '').toLowerCase().includes(term)),
     );
-  }, [all, entries, search, codeFilter, mineOnly, showDeleted, isAdmin, user.uid]);
+  }, [entries, search, codeFilter, mineOnly, user.uid]);
 
   const total = rows.filter((e) => !e.isDeleted).reduce((s, e) => s + e.amount, 0);
   const canEdit = (e) => !e.isDeleted && (isAdmin || e.createdBy?.uid === user.uid);

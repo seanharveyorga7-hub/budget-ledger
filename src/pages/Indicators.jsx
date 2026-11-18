@@ -21,13 +21,12 @@ export default function Indicators() {
   const { isAdmin } = useAuth();
   const indicatorActions = useIndicatorActions();
   const toast = useToast();
-  const { all, indicators, loading, error } = useIndicators();
+  const { indicators, loading, error } = useIndicators();
   const { entries } = useLedger();
 
   const [tab, setTab] = useState('list');
   const [search, setSearch] = useState('');
   const [objectFilter, setObjectFilter] = useState('');
-  const [showDeleted, setShowDeleted] = useState(false);
   const [formState, setFormState] = useState({ open: false, indicator: null });
   const [realignState, setRealignState] = useState({ open: false, source: '' });
   const [detail, setDetail] = useState(null);
@@ -36,16 +35,16 @@ export default function Indicators() {
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (showDeleted && isAdmin ? all : indicators).filter(
+    return indicators.filter(
       (i) =>
         (!objectFilter || i.objectOfExpenses === objectFilter) &&
         (!term || i.activityCode.toLowerCase().includes(term) || i.activityTitle.toLowerCase().includes(term)),
     );
-  }, [all, indicators, search, objectFilter, showDeleted, isAdmin]);
+  }, [indicators, search, objectFilter]);
 
   const totals = useMemo(
     () =>
-      rows.filter((i) => !i.isDeleted).reduce(
+      rows.reduce(
         (t, i) => ({
           annual: t.annual + i.annualBudget,
           realignment: t.realignment + i.realignment,
@@ -119,8 +118,14 @@ export default function Indicators() {
               size="sm"
               variant="ghost-danger"
               onClick={() => setToDelete(i)}
-              disabled={i.totalObligations > 0}
-              title={i.totalObligations > 0 ? 'Has active obligations' : 'Soft delete'}
+              disabled={i.totalObligations > 0 || i.realignment !== 0}
+              title={
+                i.totalObligations > 0
+                  ? 'Has active obligations'
+                  : i.realignment !== 0
+                    ? 'Has realigned funds: realign them back to ₱0.00 first'
+                    : 'Soft delete'
+              }
             >
               Delete
             </Button>
@@ -167,11 +172,6 @@ export default function Indicators() {
                 </option>
               ))}
             </select>
-            {isAdmin && (
-              <label className="checkbox">
-                <input type="checkbox" checked={showDeleted} onChange={(e) => setShowDeleted(e.target.checked)} /> Show deleted
-              </label>
-            )}
           </div>
           {loading ? (
             <Spinner />

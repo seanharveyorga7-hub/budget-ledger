@@ -13,7 +13,7 @@ Object.assign(process.env, {
 });
 
 const { auth, db } = await import('../src/lib/firebase.js');
-const { doc, getDoc, getDocs, query, where, updateDoc, deleteDoc, writeBatch, collection, serverTimestamp, setDoc } = await import('firebase/firestore');
+const { doc, getDoc, getDocFromServer, getDocs, query, where, updateDoc, deleteDoc, writeBatch, collection, serverTimestamp, setDoc } = await import('firebase/firestore');
 const { signInWithEmailAndPassword, signOut } = await import('firebase/auth');
 const authService = await import('../src/services/authService.js');
 const userService = await import('../src/services/userService.js');
@@ -76,6 +76,7 @@ await expectFail('user cannot self-promote', () => updateDoc(doc(db, 'users', me
 await expectFail('user cannot create profile as admin', () =>
   setDoc(doc(db, 'users', me.uid), { uid: me.uid, email: 'x', displayName: 'x', role: 'sys_admin', createdAt: serverTimestamp() }), 'permission-denied');
 await expectFail('user cannot change another role', () => userService.updateUserRole(users.bob.uid, 'sys_admin', me), 'permission-denied');
+await expectFail('user cannot deactivate another account', () => userService.updateUserStatus(users.bob.uid, false, me), 'permission-denied');
 await expectOk('user can rename self', () => updateDoc(doc(db, 'users', me.uid), { displayName: 'Alice U.' }));
 await expectOk('user can mark tutorial complete', () => userService.markTutorialComplete(me.uid));
 await expectFail('tutorial flag must be server time', () =>
@@ -88,6 +89,8 @@ me = await as('admin');
 await expectFail('admin cannot change own role (service)', () => userService.updateUserRole(me.uid, 'user', me), 'ValidationError');
 await expectFail('admin cannot change own role (rules)', () =>
   updateDoc(doc(db, 'users', me.uid), { role: 'user', roleUpdatedBy: me, roleUpdatedAt: serverTimestamp() }), 'permission-denied');
+await expectFail('admin cannot deactivate own account', () =>
+  updateDoc(doc(db, 'users', me.uid), { isActive: false, statusUpdatedBy: me, statusUpdatedAt: serverTimestamp() }), 'permission-denied');
 
 console.log('\nBudget indicators');
 const base = (code, budget, object = 'MOOE') => ({
@@ -101,7 +104,18 @@ await expectFail('month sum mismatch rejected (service)', () =>
 await expectFail('month sum mismatch rejected (rules)', () =>
   setDoc(ind.indicatorRef('C-003'), { ...base('C-003', 1200), monthlyAllocation: autoDistribute(1100), realignment: 0, totalObligations: 0, isDeleted: false, createdBy: me, createdAt: serverTimestamp() }), 'permission-denied');
 
+console.log('\nAccount access');
+await expectOk('admin deactivates Alice', () => userService.updateUserStatus(users.alice.uid, false, me));
 me = await as('alice');
+const inactiveProfile = await expectOk('inactive user can read their own status', () => getDocFromServer(doc(db, 'users', me.uid)));
+await expectEqual('Alice is inactive', inactiveProfile?.data()?.isActive, false);
+await expectFail('inactive user cannot read indicators', () => getDocFromServer(ind.indicatorRef('A-001')), 'permission-denied');
+await expectFail('inactive user cannot reactivate themselves', () =>
+  updateDoc(doc(db, 'users', me.uid), { isActive: true, statusUpdatedBy: me, statusUpdatedAt: serverTimestamp() }), 'permission-denied');
+me = await as('admin');
+await expectOk('admin reactivates Alice', () => userService.updateUserStatus(users.alice.uid, true, me));
+me = await as('alice');
+await expectOk('reactivated user can read indicators', () => getDocFromServer(ind.indicatorRef('A-001')));
 await expectFail('user cannot create indicator', () => ind.createIndicator(base('Z-999', 100), me), 'permission-denied');
 await expectFail('user cannot realign', () => realignBudget({ sourceCode: 'A-001', targetCode: 'B-002', amount: 100, reason: 'x' }, me), 'permission-denied');
 
@@ -192,6 +206,11 @@ const deleted = (await getDoc(doc(db, 'ledger', e1))).data();
 await expectEqual('entry isDeleted', deleted.isDeleted, true);
 await expectEqual('entry deletedBy recorded', deleted.deletedBy?.uid, me.uid);
 await expectFail('cannot delete indicator with obligations', () => ind.softDeleteIndicator('A-001', me), 'ValidationError');
+await expectFail('cannot delete indicator with realigned funds', () => ind.softDeleteIndicator('B-002', me), 'ValidationError');
+await expectFail('rules block deleting indicator with realigned funds', () =>
+  updateDoc(ind.indicatorRef('B-002'), { isDeleted: true, deletedBy: me, deletedAt: serverTimestamp() }), 'permission-denied');
+await expectOk('realign ₱250 back B-002 → A-001', () => realignBudget({ sourceCode: 'B-002', targetCode: 'A-001', amount: 25000, reason: 'Return funds' }, me));
+await expectEqual('B-002 realignment back to 0', await realign('B-002'), 0);
 await expectOk('admin soft-deletes empty B-002', () => ind.softDeleteIndicator('B-002', me));
 await expectFail('no obligations on deleted indicator', () =>
   ledger.createLedgerEntry({ activityCode: 'B-002', amount: 1, date: '2026-05-01', particulars: '' }, me), 'ValidationError');

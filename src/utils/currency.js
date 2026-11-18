@@ -18,9 +18,9 @@ export function formatCentavos(centavos) {
   return pesoFormatter.format((Number(centavos) || 0) / 100);
 }
 
-/** 123456 -> "1,234.56" (no currency sign; for dense tables) */
+/** 123456 -> "₱1,234.56" (used in tables; same output as formatCentavos) */
 export function formatAmount(centavos) {
-  return plainFormatter.format((Number(centavos) || 0) / 100);
+  return formatCentavos(centavos);
 }
 
 /**
