@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Indicators from './pages/Indicators';
 import Ledger from './pages/Ledger';
 import Settings from './pages/Settings';
+import DeletedRecords from './pages/DeletedRecords';
 import { ROLES } from './utils/constants';
 
 export default function App() {
@@ -30,6 +31,14 @@ export default function App() {
               <Route index element={<Dashboard />} />
               <Route path="indicators" element={<Indicators />} />
               <Route path="ledger" element={<Ledger />} />
+              <Route
+                path="deleted"
+                element={
+                  <RequireRole role={ROLES.SYS_ADMIN}>
+                    <DeletedRecords />
+                  </RequireRole>
+                }
+              />
               <Route
                 path="settings"
                 element={

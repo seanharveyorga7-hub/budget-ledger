@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Alert, Button, Spinner } from '../components/ui';
-import { TextField } from '../components/FormControls';
+import { PasswordField, TextField } from '../components/FormControls';
 import { friendlyError } from '../utils/errors';
+import LoginHero from '../components/auth/LoginHero';
 
 export default function Login() {
   const { user, profile, loading, error: authError, signIn, register, resetPassword, logOut } = useAuth();
@@ -77,7 +78,8 @@ export default function Login() {
   const titles = { signin: 'Sign in', register: 'Create an account', reset: 'Reset password' };
 
   return (
-    <div className="auth-screen">
+    <div className="auth-screen auth-split">
+      <LoginHero />
       <div className="auth-card">
         <div className="brand brand-lg">
           <div className="brand-mark">B</div>
@@ -96,9 +98,8 @@ export default function Login() {
           )}
           <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
           {mode !== 'reset' && (
-            <TextField
+            <PasswordField
               label="Password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === 'register' ? 'new-password' : 'current-password'}

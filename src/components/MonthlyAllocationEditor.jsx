@@ -32,13 +32,16 @@ export default function MonthlyAllocationEditor({ values, onChange, annualCentav
         {MONTHS.map((m, i) => (
           <label key={m} className={`month-cell ${parsed[i] === null ? 'field-invalid' : ''}`}>
             <span className="month-name">{m}</span>
-            <MoneyInput
-              className="input input-sm"
-              value={values[i]}
-              disabled={disabled}
-              onChange={(v) => setMonth(i, v)}
-              aria-label={`${m} allocation`}
-            />
+            <span className="money-input money-input-sm">
+              <span className="money-prefix">₱</span>
+              <MoneyInput
+                className="input input-sm"
+                value={values[i]}
+                disabled={disabled}
+                onChange={(v) => setMonth(i, v)}
+                aria-label={`${m} allocation`}
+              />
+            </span>
           </label>
         ))}
       </div>
