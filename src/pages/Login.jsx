@@ -5,6 +5,7 @@ import { Alert, Button, Spinner } from '../components/ui';
 import { PasswordField, TextField } from '../components/FormControls';
 import { friendlyError } from '../utils/errors';
 import LoginHero from '../components/auth/LoginHero';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login() {
   const { user, profile, isInactive, loading, error: authError, signIn, register, resetPassword, logOut } = useAuth();
@@ -91,6 +92,7 @@ export default function Login() {
 
   return (
     <div className="auth-screen auth-split">
+      <ThemeToggle className="auth-theme" />
       <LoginHero />
       <div className="auth-card">
         <div className="brand brand-lg">

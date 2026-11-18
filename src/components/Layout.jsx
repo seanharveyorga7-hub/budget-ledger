@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTutorial } from '../contexts/TutorialContext';
 import { ROLE_LABELS, ROLES } from '../utils/constants';
 import { Badge } from './ui';
+import ThemeToggle from './ThemeToggle';
 
 const ICONS = {
   dashboard: (
@@ -149,17 +150,20 @@ export default function Layout() {
             </button>
             <div className="topbar-section">{section}</div>
           </div>
-          <button
-            type="button"
-            className="help-btn"
-            onClick={start}
-            disabled={active}
-            data-tour="tour-button"
-            title="Replay the guided tour"
-            aria-label="Replay the guided tour"
-          >
-            ?
-          </button>
+          <div className="topbar-right">
+            <ThemeToggle />
+            <button
+              type="button"
+              className="help-btn"
+              onClick={start}
+              disabled={active}
+              data-tour="tour-button"
+              title="Replay the guided tour"
+              aria-label="Replay the guided tour"
+            >
+              ?
+            </button>
+          </div>
         </header>
         <main className="content">
           <Outlet />

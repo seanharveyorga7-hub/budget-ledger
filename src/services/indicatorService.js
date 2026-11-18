@@ -83,6 +83,11 @@ export async function softDeleteIndicator(code, actor) {
     if (snap.data().totalObligations > 0) {
       throw new ValidationError('Cannot delete an indicator with active obligations. Delete its ledger entries first.');
     }
+    if (snap.data().realignment !== 0) {
+      throw new ValidationError(
+        'Cannot delete an indicator with realigned funds. Realign the money back first so its Realignment is ₱0.00.',
+      );
+    }
     tx.update(ref, { isDeleted: true, deletedBy: actor, deletedAt: serverTimestamp() });
   });
 }

@@ -93,7 +93,7 @@ const STEPS = [
       [A]: (
         <>
           <p>Each row is one activity's budget, showing its annual budget, realignment, obligations and available balance.</p>
-          <p>Use the row buttons to <strong>Edit</strong>, <strong>Realign</strong> or <strong>Delete</strong> an indicator. Delete only works when nothing is obligated against it, and it's a soft delete: the record is kept for audit.</p>
+          <p>Use the row buttons to <strong>Edit</strong>, <strong>Realign</strong> or <strong>Delete</strong> an indicator. Delete only works when nothing is obligated against it and its Realignment is ₱0.00, and it's a soft delete: the record is kept for audit.</p>
           <p><strong>Click any row</strong> to see its month-by-month allocation and spending, and its audit trail.</p>
         </>
       ),

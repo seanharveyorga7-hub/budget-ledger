@@ -141,12 +141,14 @@ service cloud.firestore {
           && getAfter(realignPath(request.resource.data.lastRealignmentId)).data.createdAt == request.time;
       }
 
-      // Admin soft delete: only when nothing is obligated against it.
+      // Admin soft delete: only when nothing is obligated against it and its
+      // realignments net to zero, so no realigned money disappears with it.
       function adminSoftDelete() {
         return isAdmin()
           && changed().hasOnly(['isDeleted', 'deletedBy', 'deletedAt'])
           && request.resource.data.isDeleted == true
           && resource.data.totalObligations == 0
+          && resource.data.realignment == 0
           && isActor(request.resource.data.deletedBy)
           && request.resource.data.deletedAt == request.time;
       }
