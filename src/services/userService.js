@@ -77,3 +77,15 @@ export async function updateUserStatus(targetUid, isActive, actor) {
     statusUpdatedAt: serverTimestamp(),
   });
 }
+
+export async function softDeleteUser(targetUid, actor) {
+  if (targetUid === actor.uid) {
+    throw new ValidationError('You cannot delete your own account.');
+  }
+  await updateDoc(userRef(targetUid), {
+    isDeleted: true,
+    isActive: false,
+    deletedBy: actor,
+    deletedAt: serverTimestamp(),
+  });
+}

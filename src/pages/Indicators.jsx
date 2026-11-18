@@ -83,7 +83,25 @@ export default function Indicators() {
       ),
     },
     { key: 'objectOfExpenses', header: 'Object', render: (i) => <Badge tone="accent">{i.objectOfExpenses}</Badge> },
-    { key: 'annualBudget', header: 'Annual Budget', align: 'right', render: (i) => formatAmount(i.annualBudget) },
+    {
+      key: 'annualBudget',
+      header: 'Annual Budget',
+      align: 'right',
+      render: (i) => (
+        <button
+          type="button"
+          className="link"
+          aria-label={`View annual budget breakdown for ${i.activityCode}, ${formatCentavos(i.annualBudget)}`}
+          aria-haspopup="dialog"
+          onClick={(event) => {
+            event.stopPropagation();
+            setDetail(i);
+          }}
+        >
+          {formatAmount(i.annualBudget)}
+        </button>
+      ),
+    },
     {
       key: 'realignment',
       header: 'Realignment',

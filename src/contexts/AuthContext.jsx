@@ -81,7 +81,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = useMemo(() => {
-    const isInactive = profile?.isActive === false;
+    const isInactive = profile?.isActive === false || profile?.isDeleted === true;
     const role = isInactive ? null : (profile?.role ?? null);
     return {
       user,

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { subscribeUsers, updateUserRole, updateUserStatus } from '../services/userService';
+import { softDeleteUser, subscribeUsers, updateUserRole, updateUserStatus } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubscription } from './useSubscription';
 
@@ -9,5 +9,6 @@ export function useUsers() {
   const { data, loading, error } = useSubscription(subscribeUsers, [], { enabled: isAdmin });
   const updateRole = useMemo(() => (uid, role) => updateUserRole(uid, role, actor), [actor]);
   const updateStatus = useMemo(() => (uid, isActive) => updateUserStatus(uid, isActive, actor), [actor]);
-  return { users: data, loading, error, updateRole, updateStatus };
+  const deleteUser = useMemo(() => (uid) => softDeleteUser(uid, actor), [actor]);
+  return { users: data, loading, error, updateRole, updateStatus, deleteUser };
 }

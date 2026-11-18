@@ -22,7 +22,8 @@ service cloud.firestore {
     function myRole() { return get(profilePath()).data.role; }
     // Profiles created before account status was added are active by default.
     function hasActiveProfile() {
-      return hasProfile() && get(profilePath()).data.get('isActive', true) == true;
+      return hasProfile() && get(profilePath()).data.get('isActive', true) == true
+        && get(profilePath()).data.get('isDeleted', false) == false;
     }
     function isAdmin() { return hasActiveProfile() && myRole() == 'sys_admin'; }
     function isMember() { return hasActiveProfile() && myRole() in ['sys_admin', 'user']; }
@@ -61,16 +62,26 @@ service cloud.firestore {
         ||
         // admins may change OTHER users' roles (never their own)
         (isAdmin() && request.auth.uid != uid
+          && resource.data.get('isDeleted', false) == false
           && changed().hasOnly(['role', 'roleUpdatedBy', 'roleUpdatedAt'])
           && request.resource.data.role in ['sys_admin', 'user']
           && isActor(request.resource.data.roleUpdatedBy)
           && request.resource.data.roleUpdatedAt == request.time)
         ||
         (isAdmin() && request.auth.uid != uid
+          && resource.data.get('isDeleted', false) == false
           && changed().hasOnly(['isActive', 'statusUpdatedBy', 'statusUpdatedAt'])
           && request.resource.data.isActive is bool
           && isActor(request.resource.data.statusUpdatedBy)
           && request.resource.data.statusUpdatedAt == request.time)
+        ||
+        (isAdmin() && request.auth.uid != uid
+          && resource.data.get('isDeleted', false) == false
+          && changed().hasOnly(['isDeleted', 'isActive', 'deletedBy', 'deletedAt'])
+          && request.resource.data.isDeleted == true
+          && request.resource.data.isActive == false
+          && isActor(request.resource.data.deletedBy)
+          && request.resource.data.deletedAt == request.time)
       );
 
       allow delete: if false;

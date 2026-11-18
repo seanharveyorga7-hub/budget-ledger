@@ -217,5 +217,17 @@ await expectFail('no obligations on deleted indicator', () =>
 await expectFail('hard delete of indicator blocked', () => deleteDoc(ind.indicatorRef('A-001')), 'permission-denied');
 await expectOk('admin promotes alice', () => userService.updateUserRole(users.alice.uid, 'sys_admin', me));
 
+console.log('\nDeleted users');
+me = await as('bob');
+await expectFail('member cannot delete another user', () => userService.softDeleteUser(users.alice.uid, me), 'permission-denied');
+me = await as('admin');
+await expectOk('admin deletes Bob', () => userService.softDeleteUser(users.bob.uid, me));
+const archivedUser = (await getDocFromServer(doc(db, 'users', users.bob.uid))).data();
+await expectEqual('Bob is archived', archivedUser.isDeleted, true);
+await expectEqual('user deletion records the admin', archivedUser.deletedBy.uid, me.uid);
+await expectFail('status changes cannot reactivate a deleted user', () => userService.updateUserStatus(users.bob.uid, true, me), 'permission-denied');
+me = await as('bob');
+await expectFail('deleted user cannot read indicators', () => getDocFromServer(ind.indicatorRef('A-001')), 'permission-denied');
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

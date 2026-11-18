@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
 import { useUsers } from '../hooks/useUsers';
-import { Alert, Badge, Card, PageHeader, Spinner } from '../components/ui';
+import { Alert, Badge, Button, Card, PageHeader, Spinner } from '../components/ui';
 import DataTable from '../components/DataTable';
 import { ConfirmDialog } from '../components/Modal';
 import { ROLE_LABELS, ROLES } from '../utils/constants';
@@ -12,16 +12,21 @@ import { friendlyError } from '../utils/errors';
 export default function Settings() {
   const { user } = useAuth();
   const toast = useToast();
-  const { users, loading, error, updateRole, updateStatus } = useUsers();
+  const { users, loading, error, updateRole, updateStatus, deleteUser } = useUsers();
+  const registeredUsers = users.filter((u) => !u.isDeleted);
   const [pending, setPending] = useState(null);
   const [saving, setSaving] = useState(false);
   const changesStatus = typeof pending?.isActive === 'boolean';
+  const deleting = pending?.delete === true;
   const statusAction = pending?.isActive ? 'Activate' : 'Deactivate';
 
   const confirmChange = async () => {
     setSaving(true);
     try {
-      if (changesStatus) {
+      if (deleting) {
+        await deleteUser(pending.target.uid);
+        toast.success(`${pending.target.displayName} was moved to Deleted Records.`);
+      } else if (changesStatus) {
         await updateStatus(pending.target.uid, pending.isActive);
         toast.success(`${pending.target.displayName} is now ${pending.isActive ? 'active' : 'inactive'}.`);
       } else {
@@ -36,19 +41,19 @@ export default function Settings() {
     }
   };
 
-  const adminCount = users.filter((u) => u.role === ROLES.SYS_ADMIN && u.isActive !== false).length;
+  const adminCount = registeredUsers.filter((u) => u.role === ROLES.SYS_ADMIN && u.isActive !== false).length;
 
   return (
     <div className="page">
       <PageHeader title="Settings" subtitle="Manage user roles and account access." />
       <Alert>{error && friendlyError(error)}</Alert>
 
-      <Card tourId="settings-users" title={`Registered Users (${users.length})`} actions={<span className="muted small">{adminCount} active System Admin(s)</span>} flush>
+      <Card tourId="settings-users" title={`Registered Users (${registeredUsers.length})`} actions={<span className="muted small">{adminCount} active System Admin(s)</span>} flush>
         {loading ? (
           <Spinner />
         ) : (
           <DataTable
-            rows={users}
+            rows={registeredUsers}
             rowKey="uid"
             columns={[
               {
@@ -110,6 +115,16 @@ export default function Settings() {
                   );
                 },
               },
+              {
+                key: 'actions',
+                header: '',
+                align: 'right',
+                render: (u) => u.uid !== user.uid && (
+                  <Button size="sm" variant="ghost-danger" onClick={() => setPending({ target: u, delete: true })}>
+                    Delete
+                  </Button>
+                ),
+              },
             ]}
           />
         )}
@@ -120,10 +135,14 @@ export default function Settings() {
 
       <ConfirmDialog
         open={Boolean(pending)}
-        tone={changesStatus && !pending.isActive ? 'danger' : 'primary'}
-        title={changesStatus ? `${statusAction} account?` : 'Change role?'}
+        tone={deleting || (changesStatus && !pending.isActive) ? 'danger' : 'primary'}
+        title={deleting ? 'Delete user?' : changesStatus ? `${statusAction} account?` : 'Change role?'}
         message={
-          pending && (changesStatus ? (
+          pending && (deleting ? (
+            <>
+              Remove app access for <strong>{pending.target.displayName}</strong> ({pending.target.email}) and move their profile to Deleted Records?
+            </>
+          ) : changesStatus ? (
             <>
               {statusAction} app access for <strong>{pending.target.displayName}</strong> ({pending.target.email})?
             </>
@@ -134,7 +153,7 @@ export default function Settings() {
             </>
           ))
         }
-        confirmLabel={changesStatus ? statusAction : 'Change role'}
+        confirmLabel={deleting ? 'Delete user' : changesStatus ? statusAction : 'Change role'}
         busy={saving}
         onConfirm={confirmChange}
         onCancel={() => setPending(null)}

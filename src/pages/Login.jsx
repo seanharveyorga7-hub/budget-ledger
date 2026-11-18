@@ -22,8 +22,8 @@ export default function Login() {
     return (
       <div className="auth-screen">
         <div className="auth-card">
-          <h1 className="auth-title">Account inactive</h1>
-          <Alert>Contact a System Admin to restore your access.</Alert>
+          <h1 className="auth-title">{profile?.isDeleted ? 'Account deleted' : 'Account inactive'}</h1>
+          <Alert>{profile?.isDeleted ? 'Contact a System Admin if you need help.' : 'Contact a System Admin to restore your access.'}</Alert>
           <Button variant="ghost" onClick={logOut}>Sign out</Button>
         </div>
       </div>

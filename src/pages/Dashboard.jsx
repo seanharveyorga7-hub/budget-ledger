@@ -4,6 +4,7 @@ import { useIndicators } from '../hooks/useIndicators';
 import { useLedger } from '../hooks/useLedger';
 import { Alert, Badge, Card, PageHeader, Spinner, StatCard } from '../components/ui';
 import DataTable from '../components/DataTable';
+import Modal from '../components/Modal';
 import { adjustedBudget, availableBalance, utilizationRate, utilizationTone } from '../utils/balance';
 import { formatAmount, formatCentavos, formatPercent } from '../utils/currency';
 import { MONTHS, monthIndexFromISO, yearFromISO } from '../utils/monthly';
@@ -21,6 +22,7 @@ export default function Dashboard() {
     return [...set].sort((a, b) => b - a);
   }, [entries]);
   const [year, setYear] = useState(new Date().getFullYear());
+  const [showAnnualBudget, setShowAnnualBudget] = useState(false);
 
   const totals = useMemo(() => {
     const annual = indicators.reduce((s, i) => s + i.annualBudget, 0);
@@ -61,11 +63,35 @@ export default function Dashboard() {
       <Alert>{(ei || el) && friendlyError(ei || el)}</Alert>
 
       <div className="stat-grid" data-tour="dashboard-stats">
-        <StatCard label="Annual Budget" value={formatCentavos(totals.annual)} hint={`${indicators.length} active indicators`} />
+        <StatCard
+          label="Annual Budget"
+          value={
+            <button type="button" className="link" aria-label={`View annual budget breakdown for ${formatCentavos(totals.annual)}`} aria-haspopup="dialog" onClick={() => setShowAnnualBudget(true)}>
+              {formatCentavos(totals.annual)}
+            </button>
+          }
+          hint={`${indicators.length} active indicators`}
+        />
         <StatCard label="Adjusted Budget" value={formatCentavos(totals.adjusted)} hint="Annual budget + realignments" />
         <StatCard label="Total Obligations" value={formatCentavos(totals.obligations)} hint={`${entries.length} active entries`} />
         <StatCard label="Available Balance" value={formatCentavos(totals.available)} hint={`${formatPercent(totals.utilization)} utilized`} tone="accent" />
       </div>
+
+      <Modal open={showAnnualBudget} title="Annual Budget Breakdown" onClose={() => setShowAnnualBudget(false)}>
+        <DataTable
+          rows={monthly}
+          columns={[
+            { key: 'month', header: 'Month' },
+            { key: 'allocation', header: 'Allocation', align: 'right', render: (r) => formatAmount(r.allocation) },
+          ]}
+          footer={
+            <tr>
+              <td>Total annual budget</td>
+              <td className="ta-right">{formatAmount(totals.annual)}</td>
+            </tr>
+          }
+        />
+      </Modal>
 
       {/* Realignments always net to zero across ALL indicators; a non-zero net here means
           some transfers involved indicators that were deleted afterwards. */}
