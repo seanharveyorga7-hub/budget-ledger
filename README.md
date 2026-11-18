@@ -93,7 +93,7 @@ The document ID **is** the Activity Code, which guarantees uniqueness without a 
 |---|---|---|
 | `activityCode` | string | Uppercase, `A-Z 0-9 . _ -`, max 50 |
 | `activityTitle` | string | |
-| `objectOfExpenses` | `'PS' \| 'MOOE' \| 'CO' \| 'FE'` | Locked while obligations exist |
+| `objectOfExpenses` | string, one of the 17 names in `src/utils/constants.js` (e.g. `'Training Expenses'`) | Locked while obligations exist. Old codes `PS`/`MOOE`/`CO`/`FE` stay valid on existing records only |\| 'MOOE' \| 'CO' \| 'FE'` | Locked while obligations exist |
 | `annualBudget` | int (centavos) | |
 | `realignment` | int (centavos) | Net transfers in (+) or out (−). Default `0` |
 | `monthlyAllocation` | int[12] | Jan–Dec. Must add up to `annualBudget` (checked by the rules too) |

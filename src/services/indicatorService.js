@@ -5,6 +5,7 @@ import { ValidationError } from '../utils/errors';
 import { adjustedBudget } from '../utils/balance';
 import { formatCentavos } from '../utils/currency';
 import { validateIndicatorInput } from '../utils/validators';
+import { isLegacyObject } from '../utils/constants';
 
 export const indicatorRef = (code) => doc(db, COLLECTIONS.indicators, code);
 const snapOpts = { serverTimestamps: 'estimate' };
@@ -23,6 +24,7 @@ export function subscribeIndicators(onData, onError) {
 
 export async function createIndicator(input, actor) {
   const data = validateIndicatorInput(input);
+  if (isLegacyObject(data.objectOfExpenses)) throw new ValidationError('Please choose a valid Object of Expenses.');
   const ref = indicatorRef(data.activityCode);
 
   await runTransaction(db, async (tx) => {
@@ -61,6 +63,10 @@ export async function updateIndicator(code, input, actor) {
     }
     if (current.totalObligations > 0 && data.objectOfExpenses !== current.objectOfExpenses) {
       throw new ValidationError('Object of Expenses cannot change while the indicator has obligations.');
+    }
+    // An old code may stay on the record it's already on, but can't be newly picked.
+    if (isLegacyObject(data.objectOfExpenses) && data.objectOfExpenses !== current.objectOfExpenses) {
+      throw new ValidationError('Please choose a valid Object of Expenses.');
     }
 
     tx.update(ref, {

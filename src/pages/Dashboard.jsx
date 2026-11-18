@@ -8,7 +8,7 @@ import { adjustedBudget, availableBalance, utilizationRate, utilizationTone } fr
 import { formatAmount, formatCentavos, formatPercent } from '../utils/currency';
 import { MONTHS, monthIndexFromISO, yearFromISO } from '../utils/monthly';
 import { formatISODate } from '../utils/dates';
-import { OBJECTS_OF_EXPENSES } from '../utils/constants';
+import { LEGACY_OBJECTS, OBJECT_CODES, objectLabel } from '../utils/constants';
 import { friendlyError } from '../utils/errors';
 
 export default function Dashboard() {
@@ -33,11 +33,12 @@ export default function Dashboard() {
 
   const byObject = useMemo(
     () =>
-      OBJECTS_OF_EXPENSES.map((o) => {
-        const list = indicators.filter((i) => i.objectOfExpenses === o.value);
+      // New list first, then any old codes (PS/MOOE/CO/FE) still on existing indicators.
+      [...OBJECT_CODES, ...Object.keys(LEGACY_OBJECTS)].map((value) => {
+        const list = indicators.filter((i) => i.objectOfExpenses === value);
         const adjusted = list.reduce((s, i) => s + adjustedBudget(i), 0);
         const obligations = list.reduce((s, i) => s + i.totalObligations, 0);
-        return { id: o.value, label: o.label, count: list.length, adjusted, obligations, available: adjusted - obligations, utilization: adjusted ? obligations / adjusted : 0 };
+        return { id: value, label: objectLabel(value), count: list.length, adjusted, obligations, available: adjusted - obligations, utilization: adjusted ? obligations / adjusted : 0 };
       }).filter((r) => r.count > 0),
     [indicators],
   );
@@ -98,7 +99,7 @@ export default function Dashboard() {
             rows={byObject}
             emptyMessage="No indicators yet."
             columns={[
-              { key: 'id', header: 'Object', render: (r) => <span title={r.label}><Badge tone="accent">{r.id}</Badge></span> },
+              { key: 'id', header: 'Object', className: 'cell-wrap', render: (r) => r.label },
               { key: 'adjusted', header: 'Adjusted', align: 'right', render: (r) => formatAmount(r.adjusted) },
               { key: 'obligations', header: 'Obligated', align: 'right', render: (r) => formatAmount(r.obligations) },
               { key: 'available', header: 'Available', align: 'right', render: (r) => formatAmount(r.available) },

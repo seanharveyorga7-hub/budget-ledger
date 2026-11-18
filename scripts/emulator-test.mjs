@@ -93,11 +93,18 @@ await expectFail('admin cannot deactivate own account', () =>
   updateDoc(doc(db, 'users', me.uid), { isActive: false, statusUpdatedBy: me, statusUpdatedAt: serverTimestamp() }), 'permission-denied');
 
 console.log('\nBudget indicators');
-const base = (code, budget, object = 'MOOE') => ({
+const base = (code, budget, object = 'Training Expenses') => ({
   activityCode: code, activityTitle: `Activity ${code}`, objectOfExpenses: object, annualBudget: budget, monthlyAllocation: autoDistribute(budget),
 });
 await expectOk('admin creates A-001 (₱1,000.00)', () => ind.createIndicator(base('A-001', 100000), me));
-await expectOk('admin creates B-002 (₱500.00, CO)', () => ind.createIndicator(base('B-002', 50000, 'CO'), me));
+await expectOk('admin creates B-002 (₱500.00, Electricity Expenses)', () => ind.createIndicator(base('B-002', 50000, 'Electricity Expenses'), me));
+await expectFail('old object code rejected for new indicator', () => ind.createIndicator(base('Z-OLD', 1200, 'MOOE'), me), 'ValidationError');
+await expectFail('rules reject old object code on create', () =>
+  setDoc(ind.indicatorRef('Z-OLD'), { ...base('Z-OLD', 1200, 'MOOE'), realignment: 0, totalObligations: 0, isDeleted: false, createdBy: me, createdAt: serverTimestamp() }), 'permission-denied');
+await expectFail('rules reject unknown object name', () =>
+  setDoc(ind.indicatorRef('Z-BAD'), { ...base('Z-BAD', 1200, 'Snacks'), realignment: 0, totalObligations: 0, isDeleted: false, createdBy: me, createdAt: serverTimestamp() }), 'permission-denied');
+await expectFail('rules block switching an indicator to an old code', () =>
+  updateDoc(ind.indicatorRef('B-002'), { objectOfExpenses: 'PS', updatedBy: me, updatedAt: serverTimestamp() }), 'permission-denied');await expectFail('rules reject old object code on create', () =>  setDoc(ind.indicatorRef('Z-OLD'), { ...base('Z-OLD', 1200, 'MOOE'), realignment: 0, totalObligations: 0, isDeleted: false, createdBy: me, createdAt: serverTimestamp() }), 'permission-denied');await expectFail('rules reject unknown object name', () =>  setDoc(ind.indicatorRef('Z-BAD'), { ...base('Z-BAD', 1200, 'Snacks'), realignment: 0, totalObligations: 0, isDeleted: false, createdBy: me, createdAt: serverTimestamp() }), 'permission-denied');await expectFail('rules block switching an indicator to an old code', () =>  updateDoc(ind.indicatorRef('B-002'), { objectOfExpenses: 'PS', updatedBy: me, updatedAt: serverTimestamp() }), 'permission-denied');
 await expectFail('duplicate activity code rejected', () => ind.createIndicator(base('A-001', 100), me), 'ValidationError');
 await expectFail('month sum mismatch rejected (service)', () =>
   ind.createIndicator({ ...base('C-003', 1200), monthlyAllocation: autoDistribute(1100) }, me), 'ValidationError');
@@ -138,16 +145,16 @@ await expectFail('over-budget entry blocked (service)', () =>
 await expectFail('over-budget entry blocked (rules bypass)', async () => {
   const b = writeBatch(db);
   const ref = doc(collection(db, 'ledger'));
-  b.set(ref, { activityCode: 'A-001', activityTitle: 'Activity A-001', objectOfExpenditure: 'MOOE', amount: 50000, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() });
+  b.set(ref, { activityCode: 'A-001', activityTitle: 'Activity A-001', objectOfExpenditure: 'Training Expenses', amount: 50000, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() });
   b.update(ind.indicatorRef('A-001'), { totalObligations: 110000, lastLedgerEntryId: ref.id });
   await b.commit();
 }, 'permission-denied');
 await expectFail('ledger write without indicator update blocked', () =>
-  setDoc(doc(collection(db, 'ledger')), { activityCode: 'A-001', activityTitle: 'Activity A-001', objectOfExpenditure: 'MOOE', amount: 100, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() }), 'permission-denied');
+  setDoc(doc(collection(db, 'ledger')), { activityCode: 'A-001', activityTitle: 'Activity A-001', objectOfExpenditure: 'Training Expenses', amount: 100, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() }), 'permission-denied');
 await expectFail('cannot lower an unrelated indicator total', async () => {
   const b = writeBatch(db);
   const ref = doc(collection(db, 'ledger'));
-  b.set(ref, { activityCode: 'B-002', activityTitle: 'Activity B-002', objectOfExpenditure: 'CO', amount: 100, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() });
+  b.set(ref, { activityCode: 'B-002', activityTitle: 'Activity B-002', objectOfExpenditure: 'Electricity Expenses', amount: 100, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() });
   b.update(ind.indicatorRef('B-002'), { totalObligations: 100, lastLedgerEntryId: ref.id });
   b.update(ind.indicatorRef('A-001'), { totalObligations: 0, lastLedgerEntryId: ref.id });
   await b.commit();
@@ -155,7 +162,7 @@ await expectFail('cannot lower an unrelated indicator total', async () => {
 await expectFail('wrong object of expenditure rejected', async () => {
   const b = writeBatch(db);
   const ref = doc(collection(db, 'ledger'));
-  b.set(ref, { activityCode: 'B-002', activityTitle: 'Activity B-002', objectOfExpenditure: 'PS', amount: 100, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() });
+  b.set(ref, { activityCode: 'B-002', activityTitle: 'Activity B-002', objectOfExpenditure: 'Water Expenses', amount: 100, date: '2026-03-11', particulars: '', isDeleted: false, createdBy: me, createdAt: serverTimestamp(), updatedBy: me, updatedAt: serverTimestamp() });
   b.update(ind.indicatorRef('B-002'), { totalObligations: 100, lastLedgerEntryId: ref.id });
   await b.commit();
 }, 'permission-denied');
@@ -213,7 +220,7 @@ await expectFail('rules block realigning into a deleted indicator', async () => 
   const b = writeBatch(db);
   const logRef = doc(collection(db, 'realignments'));
   const aReal = await realign('A-001');
-  b.set(logRef, { sourceCode: 'A-001', sourceTitle: 'x', sourceObject: 'PS', sourceAvailableBefore: 0, targetCode: 'B-002', targetTitle: 'x', targetObject: 'CO', targetAvailableBefore: 0, amount: 100, reason: 'sneaky', createdBy: me, createdAt: serverTimestamp() });
+  b.set(logRef, { sourceCode: 'A-001', sourceTitle: 'x', sourceObject: 'Water Expenses', sourceAvailableBefore: 0, targetCode: 'B-002', targetTitle: 'x', targetObject: 'Electricity Expenses', targetAvailableBefore: 0, amount: 100, reason: 'sneaky', createdBy: me, createdAt: serverTimestamp() });
   b.update(ind.indicatorRef('A-001'), { realignment: aReal - 100, lastRealignmentId: logRef.id, updatedBy: me, updatedAt: serverTimestamp() });
   b.update(ind.indicatorRef('B-002'), { realignment: 100, lastRealignmentId: logRef.id, updatedBy: me, updatedAt: serverTimestamp() });
   await b.commit();

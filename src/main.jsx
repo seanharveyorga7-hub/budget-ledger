@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { isFirebaseConfigured } from './lib/firebase';
 import App from './App';
+import ErrorBoundary from './components/ErrorBoundary';
 import './styles.css';
 
 function SetupRequired() {
@@ -21,5 +22,7 @@ function SetupRequired() {
 }
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>{isFirebaseConfigured ? <App /> : <SetupRequired />}</StrictMode>,
+  <StrictMode>
+    <ErrorBoundary>{isFirebaseConfigured ? <App /> : <SetupRequired />}</ErrorBoundary>
+  </StrictMode>,
 );

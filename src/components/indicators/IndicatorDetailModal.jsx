@@ -5,6 +5,7 @@ import { Badge } from '../ui';
 import { adjustedBudget, availableBalance, utilizationRate } from '../../utils/balance';
 import { formatAmount, formatCentavos, formatPercent } from '../../utils/currency';
 import { MONTHS, monthIndexFromISO } from '../../utils/monthly';
+import { objectLabel } from '../../utils/constants';
 
 export default function IndicatorDetailModal({ indicator, entries, onClose }) {
   const obligatedByMonth = useMemo(() => {
@@ -24,7 +25,7 @@ export default function IndicatorDetailModal({ indicator, entries, onClose }) {
     <Modal open title={`${indicator.activityCode} · ${indicator.activityTitle}`} onClose={onClose} size="lg">
       <div className="stack">
         <div className="detail-grid">
-          <Detail label="Object of Expenses" value={<Badge tone="accent">{indicator.objectOfExpenses}</Badge>} />
+          <Detail label="Object of Expenses" value={objectLabel(indicator.objectOfExpenses)} />
           <Detail label="Annual Budget" value={formatCentavos(indicator.annualBudget)} />
           <Detail label="Realignment" value={formatCentavos(indicator.realignment)} />
           <Detail label="Adjusted Budget" value={formatCentavos(adjustedBudget(indicator))} />

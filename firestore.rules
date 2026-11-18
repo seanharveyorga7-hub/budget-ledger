@@ -85,6 +85,19 @@ service cloud.firestore {
         && m[0] + m[1] + m[2] + m[3] + m[4] + m[5] + m[6] + m[7] + m[8] + m[9] + m[10] + m[11] == total;
     }
 
+    // Object of Expenses. Keep in sync with OBJECTS_OF_EXPENSES in src/utils/constants.js.
+    function isObjectName(v) {
+      return v in [
+        'Travelling Expenses - Local', 'ICT Training Expenses', 'Training Expenses',
+        'ICT Office Supplies Expenses', 'Office Supplies Expenses', 'Accountable Forms Expenses',
+        'Fuel, Oil and Lubricants', 'Other Supplies and Materials Expenses', 'Water Expenses',
+        'Electricity Expenses', 'Postage and Courier Expenses', 'Mobile', 'Landline',
+        'Internet Subscription Expenses', 'Cable, Satellite, Telegraph and Radio Expenses',
+        'Awards/Rewards Expenses', 'Extraordinary and Miscellaneous Expenses'];
+    }
+    // The original four codes: still valid on records that already have one, never newly chosen.
+    function isLegacyObject(v) { return v in ['PS', 'MOOE', 'CO', 'FE']; }
+
     function validIndicator(d) {
       return d.keys().hasOnly([
           'activityCode', 'activityTitle', 'objectOfExpenses', 'annualBudget', 'realignment',
@@ -93,7 +106,7 @@ service cloud.firestore {
           'lastLedgerEntryId', 'lastRealignmentId'])
         && nonEmpty(d.activityCode, 50)
         && nonEmpty(d.activityTitle, 300)
-        && d.objectOfExpenses in ['PS', 'MOOE', 'CO', 'FE']
+        && (isObjectName(d.objectOfExpenses) || isLegacyObject(d.objectOfExpenses))
         && isMoney(d.annualBudget)
         && d.realignment is int
         && isMoney(d.totalObligations)
@@ -108,6 +121,7 @@ service cloud.firestore {
       allow create: if isAdmin()
         && validIndicator(request.resource.data)
         && request.resource.data.activityCode == code
+        && isObjectName(request.resource.data.objectOfExpenses)   // new indicators use the new list
         && request.resource.data.realignment == 0
         && request.resource.data.totalObligations == 0
         && request.resource.data.isDeleted == false
@@ -129,7 +143,10 @@ service cloud.firestore {
           && request.resource.data.updatedAt == request.time
           // cannot reclassify an indicator that already has obligations
           && (resource.data.totalObligations == 0
-              || request.resource.data.objectOfExpenses == resource.data.objectOfExpenses);
+              || request.resource.data.objectOfExpenses == resource.data.objectOfExpenses)
+          // an old code may be kept, but switching is only to a name from the new list
+          && (request.resource.data.objectOfExpenses == resource.data.objectOfExpenses
+              || isObjectName(request.resource.data.objectOfExpenses));
       }
 
       // Admin realignment: must be paired with a realignment log written in this transaction.
