@@ -38,38 +38,38 @@
   color-scheme: light;
 }
 
-/* Dark mode: soft navy instead of black, off-white text instead of pure white, a calm blue accent,
-   and desaturated accents so nothing glows. */
+/* Dark mode: the light theme carried over. Slate-grey surfaces (not black), cream-tinted
+   text, and the same amber brand shifted toward gold so it stays calm on a dark background. */
 :root[data-theme='dark'] {
-  --bg: #121a2b;
-  --surface: #1a2338;
-  --surface-muted: #212c44;
-  --border: #2b3854;
-  --border-strong: #3a4968;
-  --text: #dbe4f3;
-  --text-muted: #93a2bd;
-  --primary: #7aa7f0;
-  --primary-hover: #9bbdf5;
-  --primary-light: #6596e6;
-  --primary-soft: rgba(122, 167, 240, 0.22);
-  --primary-tint: rgba(122, 167, 240, 0.09);
-  --danger: #ec8f8f;
-  --danger-soft: rgba(236, 143, 143, 0.14);
-  --danger-hover: #f3a7a7;
-  --danger-border: rgba(236, 143, 143, 0.3);
-  --success: #7fd0a4;
-  --success-soft: rgba(127, 208, 164, 0.14);
-  --warning: #e3c56f;
-  --warning-soft: rgba(227, 197, 111, 0.14);
-  --info: #8ec5f5;
-  --info-soft: rgba(142, 197, 245, 0.14);
-  --on-primary: #0f1726;
-  --focus-ring: rgba(122, 167, 240, 0.28);
-  --row-hover: #1f2a41;
-  --strike: rgba(147, 162, 189, 0.5);
-  --overlay: rgba(5, 9, 18, 0.6);
-  --overlay-strong: rgba(5, 9, 18, 0.68);
-  --topbar-bg: rgba(18, 26, 43, 0.9);
+  --bg: #1c1f24;
+  --surface: #24282f;
+  --surface-muted: #2b3038;
+  --border: #353b45;
+  --border-strong: #454c58;
+  --text: #ebe6dc;
+  --text-muted: #a5a7ab;
+  --primary: #d9a648;
+  --primary-hover: #e6ba66;
+  --primary-light: #c9953a;
+  --primary-soft: rgba(217, 166, 72, 0.2);
+  --primary-tint: rgba(217, 166, 72, 0.08);
+  --danger: #e8908a;
+  --danger-soft: rgba(232, 144, 138, 0.14);
+  --danger-hover: #f0a7a2;
+  --danger-border: rgba(232, 144, 138, 0.3);
+  --success: #85c99d;
+  --success-soft: rgba(133, 201, 157, 0.14);
+  --warning: #e0c070;
+  --warning-soft: rgba(224, 192, 112, 0.14);
+  --info: #93b4e0;
+  --info-soft: rgba(147, 180, 224, 0.14);
+  --on-primary: #1c1f24;
+  --focus-ring: rgba(217, 166, 72, 0.28);
+  --row-hover: #282d35;
+  --strike: rgba(165, 167, 171, 0.5);
+  --overlay: rgba(8, 9, 11, 0.6);
+  --overlay-strong: rgba(8, 9, 11, 0.68);
+  --topbar-bg: rgba(28, 31, 36, 0.9);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px 3px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 20px 40px -12px rgba(0, 0, 0, 0.55);
   --shadow-chip: 0 10px 24px -10px rgba(0, 0, 0, 0.55);
