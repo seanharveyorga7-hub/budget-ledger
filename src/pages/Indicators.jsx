@@ -27,6 +27,8 @@ export default function Indicators() {
   const [tab, setTab] = useState('list');
   const [search, setSearch] = useState('');
   const [objectFilter, setObjectFilter] = useState('');
+  const [usageFilter, setUsageFilter] = useState('');
+  const hasFilters = Boolean(search || objectFilter || usageFilter);
   const [formState, setFormState] = useState({ open: false, indicator: null });
   const [realignState, setRealignState] = useState({ open: false, source: '' });
   const [detail, setDetail] = useState(null);
@@ -38,9 +40,10 @@ export default function Indicators() {
     return indicators.filter(
       (i) =>
         (!objectFilter || i.objectOfExpenses === objectFilter) &&
+        (!usageFilter || (usageFilter === 'high' ? utilizationRate(i) >= 0.8 : utilizationRate(i) < 0.8)) &&
         (!term || i.activityCode.toLowerCase().includes(term) || i.activityTitle.toLowerCase().includes(term)),
     );
-  }, [indicators, search, objectFilter]);
+  }, [indicators, search, objectFilter, usageFilter]);
 
   const totals = useMemo(
     () =>
@@ -181,7 +184,7 @@ export default function Indicators() {
       {tab === 'list' ? (
         <Card flush tourId="indicators-table">
           <div className="toolbar" data-tour="indicators-toolbar">
-            <input className="input" placeholder="Search code or title…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input type="search" className="input" aria-label="Search indicators" placeholder="Search code or title…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <select className="input" value={objectFilter} onChange={(e) => setObjectFilter(e.target.value)} aria-label="Object of expenses">
               <option value="">All objects</option>
               {OBJECTS_OF_EXPENSES.map((o) => (
@@ -198,6 +201,12 @@ export default function Indicators() {
                   </option>
                 ))}
             </select>
+            <select className="input" aria-label="Budget usage" value={usageFilter} onChange={(e) => setUsageFilter(e.target.value)}>
+              <option value="">Any budget usage</option>
+              <option value="high">80% used or more</option>
+              <option value="low">Under 80% used</option>
+            </select>
+            {hasFilters && <Button variant="ghost" onClick={() => { setSearch(''); setObjectFilter(''); setUsageFilter(''); }}>Clear filters</Button>}
           </div>
           {loading ? (
             <Spinner />
@@ -207,7 +216,7 @@ export default function Indicators() {
               columns={columns}
               onRowClick={setDetail}
               rowClassName={(i) => (i.isDeleted ? 'row-deleted' : '')}
-              emptyMessage={isAdmin ? 'No indicators yet. Click “New Indicator” to add one.' : 'No indicators found.'}
+              emptyMessage={hasFilters ? 'No indicators match your filters.' : isAdmin ? 'No indicators yet. Click “New Indicator” to add one.' : 'No indicators found.'}
               footer={
                 <tr>
                   <td colSpan={3}>Total (active)</td>

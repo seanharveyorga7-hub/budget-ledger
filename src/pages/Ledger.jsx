@@ -10,6 +10,7 @@ import LedgerFormModal from '../components/ledger/LedgerFormModal';
 import LedgerDetailModal from '../components/ledger/LedgerDetailModal';
 import { formatAmount, formatCentavos } from '../utils/currency';
 import { formatISODate } from '../utils/dates';
+import { yearFromISO } from '../utils/monthly';
 import { friendlyError } from '../utils/errors';
 import { objectLabel } from '../utils/constants';
 
@@ -23,23 +24,28 @@ export default function Ledger() {
   const [search, setSearch] = useState('');
   const [codeFilter, setCodeFilter] = useState('');
   const [mineOnly, setMineOnly] = useState(false);
+  const [yearFilter, setYearFilter] = useState('');
+  const hasFilters = Boolean(search || codeFilter || yearFilter || mineOnly);
   const [formState, setFormState] = useState({ open: false, entry: null });
   const [detail, setDetail] = useState(null);
   const [toDelete, setToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+
+  const years = useMemo(() => [...new Set(entries.map((e) => yearFromISO(e.date)).filter((year) => year > 0))].sort((a, b) => b - a), [entries]);
 
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return entries.filter(
       (e) =>
         (!codeFilter || e.activityCode === codeFilter) &&
+        (!yearFilter || yearFromISO(e.date) === Number(yearFilter)) &&
         (!mineOnly || e.createdBy?.uid === user.uid) &&
         (!term ||
           e.activityCode.toLowerCase().includes(term) ||
           e.activityTitle.toLowerCase().includes(term) ||
           (e.particulars || '').toLowerCase().includes(term)),
     );
-  }, [entries, search, codeFilter, mineOnly, user.uid]);
+  }, [entries, search, codeFilter, mineOnly, yearFilter, user.uid]);
 
   const total = rows.filter((e) => !e.isDeleted).reduce((s, e) => s + e.amount, 0);
   const canEdit = (e) => !e.isDeleted && (isAdmin || e.createdBy?.uid === user.uid);
@@ -73,7 +79,7 @@ export default function Ledger() {
 
       <Card flush tourId="ledger-table">
         <div className="toolbar" data-tour="ledger-toolbar">
-          <input className="input" placeholder="Search code, title or particulars…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input type="search" className="input" aria-label="Search obligations" placeholder="Search code, title or particulars…" value={search} onChange={(e) => setSearch(e.target.value)} />
           <select className="input" value={codeFilter} onChange={(e) => setCodeFilter(e.target.value)} aria-label="Indicator">
             <option value="">All indicators</option>
             {indicators.map((i) => (
@@ -82,9 +88,14 @@ export default function Ledger() {
               </option>
             ))}
           </select>
+          <select className="input" aria-label="Obligation year" value={yearFilter} onChange={(e) => setYearFilter(e.target.value)}>
+            <option value="">All obligation years</option>
+            {years.map((year) => <option key={year} value={year}>{year}</option>)}
+          </select>
           {isAdmin && <label className="checkbox">
             <input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> My entries
           </label>}
+          {hasFilters && <Button variant="ghost" onClick={() => { setSearch(''); setCodeFilter(''); setYearFilter(''); setMineOnly(false); }}>Clear filters</Button>}
         </div>
 
         {ll ? (
@@ -94,7 +105,7 @@ export default function Ledger() {
             rows={rows}
             onRowClick={setDetail}
             rowClassName={(e) => (e.isDeleted ? 'row-deleted' : '')}
-            emptyMessage="No obligations found."
+            emptyMessage={hasFilters ? 'No obligations match your filters.' : 'No obligations found.'}
             columns={[
               { key: 'date', header: 'Date', render: (e) => formatISODate(e.date) },
               { key: 'activityCode', header: 'Code', render: (e) => <strong>{e.activityCode}</strong> },
