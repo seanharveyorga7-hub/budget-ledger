@@ -3,6 +3,7 @@ import AuditTrail from '../AuditTrail';
 import { Badge } from '../ui';
 import { formatCentavos } from '../../utils/currency';
 import { formatISODate } from '../../utils/dates';
+import { objectLabel } from '../../utils/constants';
 
 export default function LedgerDetailModal({ entry, onClose }) {
   if (!entry) return null;
@@ -11,7 +12,7 @@ export default function LedgerDetailModal({ entry, onClose }) {
       <div className="stack">
         <div className="detail-grid">
           <Item label="Activity Code" value={entry.activityCode} />
-          <Item label="Object of Expenditure" value={<Badge tone="accent">{entry.objectOfExpenditure}</Badge>} />
+          <Item label="Object of Expenditure" value={objectLabel(entry.objectOfExpenditure)} />
           <Item label="Activity Title" value={entry.activityTitle} wide />
           <Item label="Amount" value={<strong>{formatCentavos(entry.amount)}</strong>} />
           <Item label="Transaction Date" value={formatISODate(entry.date)} />

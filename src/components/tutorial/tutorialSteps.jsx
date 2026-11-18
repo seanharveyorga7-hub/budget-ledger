@@ -60,7 +60,7 @@ const STEPS = [
     title: 'Breakdown by Object of Expenses',
     body: (
       <p>
-        Totals for each spending class: <strong>PS</strong>, <strong>MOOE</strong>, <strong>CO</strong> and <strong>FE</strong>.
+        Totals for each Object of Expenses in use, such as <strong>Training Expenses</strong> or <strong>Electricity Expenses</strong>.
         The <em>Used</em> badge turns amber at 80% utilization and red at 100%.
       </p>
     ),

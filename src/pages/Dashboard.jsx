@@ -8,11 +8,13 @@ import { adjustedBudget, availableBalance, utilizationRate, utilizationTone } fr
 import { formatAmount, formatCentavos, formatPercent } from '../utils/currency';
 import { MONTHS, monthIndexFromISO, yearFromISO } from '../utils/monthly';
 import { formatISODate } from '../utils/dates';
-import { OBJECTS_OF_EXPENSES } from '../utils/constants';
+import { LEGACY_OBJECTS, OBJECT_CODES, objectLabel } from '../utils/constants';
 import { friendlyError } from '../utils/errors';
 
 export default function Dashboard() {
-  const { indicators, loading: li, error: ei } = useIndicators();
+  const { all, indicators, loading: li, error: ei } = useIndicators();
+  // Deleted indicators whose realignment isn't zero: where the "missing" realigned money sits.
+  const strandedIn = useMemo(() => all.filter((i) => i.isDeleted && i.realignment !== 0), [all]);
   const { entries, loading: ll, error: el } = useLedger();
 
   const years = useMemo(() => {
@@ -31,11 +33,12 @@ export default function Dashboard() {
 
   const byObject = useMemo(
     () =>
-      OBJECTS_OF_EXPENSES.map((o) => {
-        const list = indicators.filter((i) => i.objectOfExpenses === o.value);
+      // New list first, then any old codes (PS/MOOE/CO/FE) still on existing indicators.
+      [...OBJECT_CODES, ...Object.keys(LEGACY_OBJECTS)].map((value) => {
+        const list = indicators.filter((i) => i.objectOfExpenses === value);
         const adjusted = list.reduce((s, i) => s + adjustedBudget(i), 0);
         const obligations = list.reduce((s, i) => s + i.totalObligations, 0);
-        return { id: o.value, label: o.label, count: list.length, adjusted, obligations, available: adjusted - obligations, utilization: adjusted ? obligations / adjusted : 0 };
+        return { id: value, label: objectLabel(value), count: list.length, adjusted, obligations, available: adjusted - obligations, utilization: adjusted ? obligations / adjusted : 0 };
       }).filter((r) => r.count > 0),
     [indicators],
   );
@@ -74,6 +77,18 @@ export default function Dashboard() {
           {totals.adjusted > totals.annual
             ? `${formatCentavos(totals.adjusted - totals.annual)} of the realignments on active indicators came from indicators that were later deleted, so the Adjusted Budget is higher than the Annual Budget.`
             : `${formatCentavos(totals.annual - totals.adjusted)} was realigned from active indicators to indicators that were later deleted, so the Adjusted Budget is lower than the Annual Budget.`}{' '}
+          {strandedIn.length > 0 && (
+            <>
+              Deleted indicators still holding realigned funds:{' '}
+              {strandedIn.map((i, n) => (
+                <span key={i.activityCode}>
+                  {n > 0 && ', '}
+                  <strong>{i.activityCode}</strong> ({formatCentavos(i.realignment)})
+                </span>
+              ))}
+              .{' '}
+            </>
+          )}
           Each transfer is listed under <Link to="/indicators" className="link">Budget Indicators → Realignment Log</Link>.
         </Alert>
       )}
@@ -84,7 +99,7 @@ export default function Dashboard() {
             rows={byObject}
             emptyMessage="No indicators yet."
             columns={[
-              { key: 'id', header: 'Object', render: (r) => <span title={r.label}><Badge tone="accent">{r.id}</Badge></span> },
+              { key: 'id', header: 'Object', className: 'cell-wrap', render: (r) => r.label },
               { key: 'adjusted', header: 'Adjusted', align: 'right', render: (r) => formatAmount(r.adjusted) },
               { key: 'obligations', header: 'Obligated', align: 'right', render: (r) => formatAmount(r.obligations) },
               { key: 'available', header: 'Available', align: 'right', render: (r) => formatAmount(r.available) },

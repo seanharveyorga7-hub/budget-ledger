@@ -3,7 +3,7 @@
 // The final guard is firestore.rules.
 
 import { ValidationError } from './errors';
-import { ACTIVITY_CODE_PATTERN, OBJECT_CODES, MAX_TITLE_LENGTH, MAX_NOTE_LENGTH } from './constants';
+import { ACTIVITY_CODE_PATTERN, OBJECT_CODES, MAX_TITLE_LENGTH, MAX_NOTE_LENGTH, isLegacyObject } from './constants';
 import { validateMonthlyAllocation } from './monthly';
 import { isValidISODate } from './dates';
 
@@ -29,7 +29,8 @@ export function validateIndicatorInput(input) {
   if (!activityTitle || activityTitle.length > MAX_TITLE_LENGTH) {
     throw new ValidationError(`Activity Title is required (max ${MAX_TITLE_LENGTH} characters).`);
   }
-  if (!OBJECT_CODES.includes(objectOfExpenses)) {
+  // Old codes (PS/MOOE/CO/FE) pass here; the services only let them stay on existing records.
+  if (!OBJECT_CODES.includes(objectOfExpenses) && !isLegacyObject(objectOfExpenses)) {
     throw new ValidationError('Please choose a valid Object of Expenses.');
   }
   requireMoney(annualBudget, 'Annual Budget');

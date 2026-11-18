@@ -8,6 +8,7 @@ import { availableForEntry } from '../../utils/balance';
 import { centavosToInput, formatCentavos, parseToCentavos } from '../../utils/currency';
 import { todayISO } from '../../utils/dates';
 import { ERROR_TITLES, errorKind, friendlyError } from '../../utils/errors';
+import { objectLabel } from '../../utils/constants';
 
 export default function LedgerFormModal({ open, entry, indicators, onClose }) {
   const isEdit = Boolean(entry);
@@ -92,7 +93,7 @@ export default function LedgerFormModal({ open, entry, indicators, onClose }) {
         />
         <div className="grid-2">
           <TextField label="Activity Title" value={indicator?.activityTitle ?? ''} readOnly placeholder="Auto-filled" />
-          <TextField label="Object of Expenditure" value={indicator?.objectOfExpenses ?? ''} readOnly placeholder="Auto-filled" />
+          <TextField label="Object of Expenditure" value={objectLabel(indicator?.objectOfExpenses)} readOnly placeholder="Auto-filled" />
         </div>
         <div className="grid-2">
           <MoneyField
